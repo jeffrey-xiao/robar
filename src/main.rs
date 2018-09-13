@@ -3,11 +3,10 @@ extern crate dbus;
 extern crate xcb;
 
 mod display;
+mod server;
 
-use std::sync::Arc;
-use dbus::{Connection, BusType, NameFlag};
-use dbus::tree::Factory;
 use clap::{Arg, App, SubCommand};
+use std::sync::Arc;
 
 fn main() {
     let matches = App::new("x11-overlay-bar-rs")
@@ -45,7 +44,9 @@ fn main() {
 
     match matches.subcommand() {
         ("start", Some(matches)) => {
-
+            let display = display::Display::new().unwrap();
+            display.show();
+            server::start_server(display);
         },
         ("show", Some(matches)) => {
 

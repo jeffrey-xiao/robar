@@ -1,6 +1,6 @@
 use xcb;
 
-struct Display {
+pub struct Display {
     connection: xcb::Connection,
     window_id: u32,
     screen_index: usize,
