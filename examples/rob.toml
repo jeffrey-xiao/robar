@@ -1,8 +1,11 @@
 [global]
-x_absolute = 100
-y_absolute = 100
+x_center_absolute = 100
+y_center_absolute = 100
 height_absolute = 100
 width_absolute = 100
+padding = 10
+border = 10
+margin = 10
 
 [colors.default]
 foreground = "#111111"

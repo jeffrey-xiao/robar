@@ -43,7 +43,6 @@ fn create_interface(
         }))
         .add_m(factory.method("stop", (), move |method_info| {
             is_running.set(false);
-            println!("is running is {}", is_running.get());
             Ok(vec!(method_info.msg.method_return()))
         }))
 }
@@ -79,15 +78,6 @@ pub fn start_server(
     connection.add_handler(tree);
 
     for connection_item in connection.iter(1000) {
-        match connection_item {
-            ConnectionItem::Signal(_) => println!("Received signal"),
-            ConnectionItem::MethodReturn(_) => println!("Received method"),
-            ConnectionItem::Nothing => display.hide(),
-            _ => {
-                println!("here");
-            },
-        }
-
         if !is_running.get() {
             break;
         }

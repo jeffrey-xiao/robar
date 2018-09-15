@@ -1,5 +1,6 @@
 use config;
 use xcb;
+use xcb::ffi::*;
 
 pub struct Display {
     connection: xcb::Connection,
@@ -22,7 +23,7 @@ impl Display {
             self.window,
             screen.root(),
             0, 0,
-            0, 0,
+            1, 1,
             0,
             xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
             screen.root_visual(),
@@ -87,22 +88,50 @@ impl Display {
         Ok(ret)
     }
 
-    fn configure_window_attributes(&self, global_config: &config::GlobalConfig) {
-        xcb::change_window_attributes(
+    fn configure_window(&self, global_config: &config::GlobalConfig) {
+        xcb::configure_window(
             &self.connection,
             self.window,
             &[
-                (xcb::CONFIG_WINDOW_WIDTH, global_config.width_to_margin()),
-                (xcb::CONFIG_WINDOW_HEIGHT, global_config.width_to_margin()),
-                (xcb::CONFIG_WINDOW_X, global_config.x()),
-                (xcb::CONFIG_WINDOW_X, global_config.y()),
+                (xcb::CONFIG_WINDOW_WIDTH as u16, global_config.width_to_margin()),
+                (xcb::CONFIG_WINDOW_HEIGHT as u16, global_config.height_to_margin()),
+                (xcb::CONFIG_WINDOW_X as u16, global_config.x()),
+                (xcb::CONFIG_WINDOW_Y as u16, global_config.y()),
+                (xcb::CONFIG_WINDOW_STACK_MODE as u16, xcb::STACK_MODE_ABOVE),
             ],
         );
+        self.connection.flush();
+    }
+
+    fn draw_rectangle(&self, color: u32, rectangle: xcb::Rectangle) {
+        xcb::change_gc(&self.connection, self.gc, &[(xcb::GC_FOREGROUND, color)]);
+        xcb::poly_fill_rectangle(&self.connection, self.window, self.gc, &[rectangle]);
     }
 
     fn draw_bar(&self, global_config: &config::GlobalConfig, color_config: &config::ColorConfig) {
-        xcb::change_gc(&self.connection, self.gc, &[(xcb::GC_FOREGROUND, 0x00FF0000)]);
-        // xcb::poly_fill_rectangle(&self.connection, self.window, self.gc, &[Rectangle::new()])
+        let mut x = 0;
+        let mut y = 0;
+        let mut width = global_config.width_to_margin() as u16;
+        let mut height = global_config.height_to_margin() as u16;
+        self.draw_rectangle(0x00FFFFFF, xcb::Rectangle::new(x, y, width, height));
+
+        x += global_config.margin as i16;
+        y += global_config.margin as i16;
+        width -= global_config.margin as u16 * 2;
+        height -= global_config.margin as u16 * 2;
+        self.draw_rectangle(0x00FFFF00, xcb::Rectangle::new(x, y, width, height));
+
+        x += global_config.border as i16;
+        y += global_config.border as i16;
+        width -= global_config.border as u16 * 2;
+        height -= global_config.border as u16 * 2;
+        self.draw_rectangle(0x0000FF00, xcb::Rectangle::new(x, y, width, height));
+
+        x += global_config.padding as i16;
+        y += global_config.padding as i16;
+        width -= global_config.padding as u16 * 2;
+        height -= global_config.padding as u16 * 2;
+        self.draw_rectangle(0x00FF0000, xcb::Rectangle::new(x, y, width, height));
     }
 
     pub fn show(
@@ -111,8 +140,9 @@ impl Display {
         global_config: &config::GlobalConfig,
         color_config: &config::ColorConfig,
     ) {
-        self.configure_window_attributes(global_config);
         xcb::map_window(&self.connection, self.window);
+        self.configure_window(global_config);
+        self.draw_bar(global_config, color_config);
         self.connection.flush();
     }
 

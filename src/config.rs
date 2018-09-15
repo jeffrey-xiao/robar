@@ -8,11 +8,11 @@ use toml;
 #[derive(Deserialize, Debug)]
 pub struct GlobalConfig {
     #[serde(default)]
-    pub x_relative: f32,
-    pub x_absolute: u32,
+    pub x_center_relative: f32,
+    pub x_center_absolute: u32,
     #[serde(default)]
-    pub y_relative: f32,
-    pub y_absolute: u32,
+    pub y_center_relative: f32,
+    pub y_center_absolute: u32,
 
     #[serde(default)]
     pub margin: u32,
@@ -39,7 +39,7 @@ impl GlobalConfig {
     }
 
     pub fn width_to_padding(&self) -> u32 {
-        self.width_absolute + 2 * self.padding
+        self.width() + 2 * self.padding
     }
 
     pub fn height_to_margin(&self) -> u32 {
@@ -51,15 +51,31 @@ impl GlobalConfig {
     }
 
     pub fn height_to_padding(&self) -> u32 {
-        self.height_absolute + 2 * self.padding
+        self.height() + 2 * self.padding
+    }
+    
+    pub fn width(&self) -> u32 {
+        self.width_absolute
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height_absolute
     }
 
     pub fn x(&self) -> u32 {
-        self.x_absolute - self.width_to_margin() / 2
+        self.x_center() - self.width_to_margin() / 2
     }
 
     pub fn y(&self) -> u32 {
-        self.y_absolute - self.height_to_margin() / 2
+        self.y_center() - self.height_to_margin() / 2
+    }
+    
+    pub fn x_center(&self) -> u32 {
+        self.x_center_absolute
+    }
+
+    pub fn y_center(&self) -> u32 {
+        self.y_center_absolute
     }
 }
 
