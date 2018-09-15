@@ -1,0 +1,10 @@
+[global]
+x_absolute = 100
+y_absolute = 100
+height_absolute = 100
+width_absolute = 100
+
+[colors.default]
+foreground = "#111111"
+background = "#111111"
+border = "#111111"
