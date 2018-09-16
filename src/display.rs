@@ -131,7 +131,7 @@ impl Display {
         height -= global_config.border as u16 * 2;
         self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
-        let height_diff = global_config.height() as f64 * (1.0 - value);
+        let height_diff = f64::from(global_config.height()) * (1.0 - value);
         x += global_config.padding as i16;
         y += global_config.padding as i16;
         width -= global_config.padding as u16 * 2;

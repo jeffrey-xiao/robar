@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, Condvar};
 use super::Result;
 
 pub const MAX_REQUEST_SIZE: usize = 32;
-pub const SOCKET_PATH: &'static str = "/tmp/rob";
+pub const SOCKET_PATH: &str = "/tmp/rob";
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
@@ -23,7 +23,11 @@ pub enum Request {
     Stop,
 }
 
-pub fn start_server(display: display::Display, global_config: config::GlobalConfig, color_configs: HashMap<String, config::ColorConfig>) -> Result<()> {
+pub fn start_server(
+    display: &display::Display,
+    global_config: &config::GlobalConfig,
+    color_configs: &HashMap<String, config::ColorConfig>,
+) -> Result<()> {
     let display = Arc::new(display);
     let socket = UnixListener::bind(SOCKET_PATH)?;
 

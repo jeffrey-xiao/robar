@@ -136,7 +136,7 @@ fn run() -> Result<()> {
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
-            server::start_server(display, global_config, color_configs);
+            server::start_server(&display, &global_config, &color_configs)
         },
         ("show", Some(matches)) => {
             client::show(
@@ -144,16 +144,14 @@ fn run() -> Result<()> {
                 matches.value_of("value").expect("Expected `value` to exist.").parse().unwrap(),
             )
         },
-        ("hide", Some(matches)) => {
-            client::hide()
-        },
-        ("stop", Some(matches)) => {
-            client::stop()
-        },
-        _ => {},
-    };
+        ("hide", Some(_)) => client::hide(),
+        ("stop", Some(_)) => client::stop(),
+        _ => Ok(()),
+    }
 }
 
 fn main() {
-
+    if let Err(err) = run() {
+        println!("{}", err);
+    }
 }

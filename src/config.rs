@@ -8,7 +8,7 @@ use super::ParseError;
 use toml;
 
 // TODO: Add icon, follow, fill direction
-#[derive(Deserialize, Debug)]
+#[derive(Copy, Clone, Deserialize, Debug)]
 pub struct GlobalConfig {
     #[serde(default)]
     pub x_center_relative: f32,
@@ -94,13 +94,13 @@ pub struct ColorConfig {
 }
 
 impl ColorConfig {
-    pub fn new(foreground: String, background: String, border: String) -> Self {
+    pub fn new(foreground: &str, background: &str, border: &str) -> Self {
         let foreground = u32::from_str_radix(&foreground[1..], 16)
-            .expect(format!("Could not parse color: {}", foreground));
+            .unwrap_or_else(|_| panic!("Could not parse color: {}", foreground));
         let background = u32::from_str_radix(&background[1..], 16)
-            .expect(format!("Could not parse color: {}", background));
+            .unwrap_or_else(|_| panic!("Could not parse color: {}", background));
         let border = u32::from_str_radix(&border[1..], 16)
-            .expect(format!("Could not parse color: {}", border));
+            .unwrap_or_else(|_| panic!("Could not parse color: {}", border));
 
         ColorConfig { foreground, background, border }
     }
@@ -174,7 +174,7 @@ impl<'de> Deserialize<'de> for ColorConfig {
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["secs", "nanos"];
+        const FIELDS: &[&str] = &["secs", "nanos"];
         deserializer.deserialize_struct("ColorConfig", FIELDS, ColorConfigVisitor)
     }
 }
@@ -198,7 +198,7 @@ where
     let global_value = toml_table
         .remove("global")
         .take()
-        .ok_or(ParseError("Expected `global` section in config file.".to_string()))?;
+        .ok_or_else(|| ParseError("Expected `global` section in config file.".to_string()))?;
     let global_config = global_value
         .try_into::<GlobalConfig>()
         .map_err(|err| ParseError(err.to_string()))?;
@@ -206,7 +206,7 @@ where
     let color_values = toml_table
         .remove("colors")
         .take()
-        .ok_or(ParseError("Expected `colors` section in config file.".to_string()))?;
+        .ok_or_else(|| ParseError("Expected `colors` section in config file.".to_string()))?;
 
     let mut color_configs = HashMap::new();
     let color_values = match color_values {
