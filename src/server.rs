@@ -9,8 +9,8 @@ use std::thread;
 use std::time::Duration;
 use std::sync::{Arc, Mutex, Condvar};
 
-const MAX_REQUEST_SIZE: usize = 32;
-const SOCKET_PATH: &'static str = "/tmp/rob";
+pub const MAX_REQUEST_SIZE: usize = 32;
+pub const SOCKET_PATH: &'static str = "/tmp/rob";
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
