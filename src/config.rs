@@ -7,7 +7,16 @@ use std::path::Path;
 use super::ParseError;
 use toml;
 
-// TODO: Add icon, follow, fill direction
+#[derive(Copy, Clone, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+// TODO: Add icon, follow
 #[derive(Copy, Clone, Deserialize, Debug)]
 pub struct GlobalConfig {
     #[serde(default)]
@@ -33,6 +42,8 @@ pub struct GlobalConfig {
 
     #[serde(default = "GlobalConfig::default_timeout")]
     pub timeout: u64,
+
+    pub fill_direction: Direction,
 }
 
 impl GlobalConfig {
@@ -128,22 +139,22 @@ impl<'de> Deserialize<'de> for ColorConfig {
             where
                 V: SeqAccess<'de>,
             {
-                let foreground = seq.next_element()?
+                let foreground: String = seq.next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let background = seq.next_element()?
+                let background: String = seq.next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let border = seq.next_element()?
+                let border: String = seq.next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                Ok(ColorConfig::new(foreground, background, border))
+                Ok(ColorConfig::new(foreground.as_ref(), background.as_ref(), border.as_ref()))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<ColorConfig, V::Error>
             where
                 V: MapAccess<'de>,
             {
-                let mut foreground = None;
-                let mut background = None;
-                let mut border = None;
+                let mut foreground: Option<String> = None;
+                let mut background: Option<String> = None;
+                let mut border: Option<String> = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::Foreground => {
@@ -170,7 +181,7 @@ impl<'de> Deserialize<'de> for ColorConfig {
                 let foreground = foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
                 let background = background.ok_or_else(|| de::Error::missing_field("background"))?;
                 let border = border.ok_or_else(|| de::Error::missing_field("border"))?;
-                Ok(ColorConfig::new(foreground, background, border))
+                Ok(ColorConfig::new(foreground.as_ref(), background.as_ref(), border.as_ref()))
             }
         }
 

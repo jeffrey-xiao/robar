@@ -22,7 +22,8 @@ use std::result;
 pub struct ParseError(String);
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid first item to double")
+        use std::error::Error;
+        write!(f, "{}", self.description())
     }
 }
 
