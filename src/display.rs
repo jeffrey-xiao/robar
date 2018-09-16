@@ -1,6 +1,5 @@
 use config;
 use xcb;
-use xcb::ffi::*;
 
 pub struct Display {
     connection: xcb::Connection,
@@ -62,7 +61,7 @@ impl Display {
         ret.init_window();
         ret.init_gc();
 
-        let title = "x11-overlay-bar-rs";
+        let title = env!("CARGO_PKG_NAME");
         xcb::change_property(
             &ret.connection,
             xcb::PROP_MODE_REPLACE as u8,
@@ -108,30 +107,36 @@ impl Display {
         xcb::poly_fill_rectangle(&self.connection, self.window, self.gc, &[rectangle]);
     }
 
-    fn draw_bar(&self, global_config: &config::GlobalConfig, color_config: &config::ColorConfig) {
+    fn draw_bar(
+        &self,
+        value: f64,
+        global_config: &config::GlobalConfig,
+        color_config: &config::ColorConfig,
+    ) {
         let mut x = 0;
         let mut y = 0;
         let mut width = global_config.width_to_margin() as u16;
         let mut height = global_config.height_to_margin() as u16;
-        self.draw_rectangle(0x00FFFFFF, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
         x += global_config.margin as i16;
         y += global_config.margin as i16;
         width -= global_config.margin as u16 * 2;
         height -= global_config.margin as u16 * 2;
-        self.draw_rectangle(0x00FFFF00, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(color_config.border, xcb::Rectangle::new(x, y, width, height));
 
         x += global_config.border as i16;
         y += global_config.border as i16;
         width -= global_config.border as u16 * 2;
         height -= global_config.border as u16 * 2;
-        self.draw_rectangle(0x0000FF00, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
+        let height_diff = global_config.height() as f64 * (1.0 - value);
         x += global_config.padding as i16;
         y += global_config.padding as i16;
         width -= global_config.padding as u16 * 2;
-        height -= global_config.padding as u16 * 2;
-        self.draw_rectangle(0x00FF0000, xcb::Rectangle::new(x, y, width, height));
+        height -= global_config.padding as u16 * 2 + height_diff as u16;
+        self.draw_rectangle(color_config.foreground, xcb::Rectangle::new(x, y, width, height));
     }
 
     pub fn show(
@@ -142,7 +147,7 @@ impl Display {
     ) {
         xcb::map_window(&self.connection, self.window);
         self.configure_window(global_config);
-        self.draw_bar(global_config, color_config);
+        self.draw_bar(value, global_config, color_config);
         self.connection.flush();
     }
 

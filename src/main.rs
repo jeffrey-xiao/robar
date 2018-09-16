@@ -1,11 +1,12 @@
+extern crate bincode;
 extern crate clap;
-extern crate dbus;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
 extern crate xcb;
 
+mod client;
 mod config;
 mod display;
 mod server;
@@ -31,15 +32,15 @@ fn main() {
         .subcommand(SubCommand::with_name("show")
             .about("Shows bar with a specific value and in a specific color profile.")
             .arg(
-                Arg::with_name("value")
-                    .help("The value of the bar.")
-                    .index(2)
-                    .required(true)
-            )
-            .arg(
                 Arg::with_name("profile")
                     .help("The color profile to use.")
                     .index(1)
+                    .required(true)
+            )
+            .arg(
+                Arg::with_name("value")
+                    .help("The value of the bar.")
+                    .index(2)
                     .required(true)
             )
         )
@@ -61,7 +62,10 @@ fn main() {
             server::start_server(display, global_config, color_configs);
         },
         ("show", Some(matches)) => {
-
+            client::show(
+                matches.value_of("profile").expect("Expected `profile` to exist.").to_owned(),
+                matches.value_of("value").expect("Expected `value` to exist.").parse().unwrap(),
+            );
         },
         ("hide", Some(matches)) => {
 

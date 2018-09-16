@@ -1,13 +1,13 @@
 [global]
-x_center_absolute = 100
-y_center_absolute = 100
-height_absolute = 100
-width_absolute = 100
-padding = 10
-border = 10
-margin = 10
+x_center_absolute = 1000
+y_center_absolute = 300
+height_absolute = 200
+width_absolute = 30
+padding = 2
+border = 3
+margin = 2
 
 [colors.default]
-foreground = "#111111"
-background = "#111111"
-border = "#111111"
+foreground = "#eee8e5"
+background = "#073642"
+border = "#b58900"

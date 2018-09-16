@@ -1,85 +1,75 @@
 use config;
-use dbus::tree::{Interface, Factory, MTFn};
-use dbus::{BusType, Connection, ConnectionItem, NameFlag, tree};
 use display;
-use std::cell::Cell;
+use bincode::deserialize;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::io::Read;
+use std::os::unix::net::UnixListener;
+use std::fs;
+use std::thread;
+use std::time::Duration;
+use std::sync::{Arc, Mutex, Condvar};
 
-const BUS_NAME: &'static str = "com.jeffreyxiao.rob";
-const INTERFACE_NAME: &'static str = "com.jeffreyxiao.rob";
+const MAX_REQUEST_SIZE: usize = 32;
+const SOCKET_PATH: &'static str = "/tmp/rob";
 
-fn create_interface(
-    display: &Rc<display::Display>,
-    global_config: config::GlobalConfig,
-    color_configs: HashMap<String, config::ColorConfig>,
-    is_running: Rc<Cell<bool>>,
-) -> Interface<MTFn<()>, ()> {
-    let factory = Factory::new_fn::<()>();
-    let show_display = display.clone();
-    let hide_display = display.clone();
-    factory.interface(INTERFACE_NAME, ())
-        .add_m(
-            factory.method("show", (), move |method_info| {
-                let (value, profile): (Option<f64>, Option<String>) = method_info.msg.get2();
-                let value = value.ok_or(tree::MethodErr::invalid_arg(&"Expected [double, string]"))?;
-                let profile = profile.ok_or(tree::MethodErr::invalid_arg(&"Expected [double, string]"))?;
-
-                match color_configs.get(&profile) {
-                    Some(ref color_config) => {
-                        show_display.show(value, &global_config, color_config);
-                    },
-                    None => panic!(format!("Did not find color profile `{}`", profile)),
-                };
-
-                Ok(vec!(method_info.msg.method_return()))
-            })
-                .inarg::<f64, _>("profile")
-                .inarg::<&str, _>("value")
-        )
-        .add_m(factory.method("hide", (), move |method_info| {
-            hide_display.hide();
-            Ok(vec!(method_info.msg.method_return()))
-        }))
-        .add_m(factory.method("stop", (), move |method_info| {
-            is_running.set(false);
-            Ok(vec!(method_info.msg.method_return()))
-        }))
+#[derive(Serialize, Deserialize)]
+pub enum Request {
+    Show {
+        profile: String,
+        value: f64,
+    },
+    Hide,
+    Stop,
 }
 
-fn create_tree(
-    display: &Rc<display::Display>,
-    global_config: config::GlobalConfig,
-    color_configs: HashMap<String, config::ColorConfig>,
-    is_running: Rc<Cell<bool>>,
-) -> tree::Tree<MTFn<()>, ()> {
-    let factory = Factory::new_fn::<()>();
-    let interface = create_interface(display, global_config, color_configs, is_running);
-    factory.tree(()).add(factory.object_path("/rob", ()).introspectable().add(interface))
-}
+pub fn start_server(display: display::Display, global_config: config::GlobalConfig, color_configs: HashMap<String, config::ColorConfig>) {
+    let display = Arc::new(display);
+    let socket = match UnixListener::bind(SOCKET_PATH) {
+        Ok(socket) => socket,
+        Err(e) => {
+            println!("Couldn't connect: {:?}", e);
+            return;
+        }
+    };
 
-pub fn start_server(
-    display: display::Display,
-    global_config: config::GlobalConfig,
-    color_configs: HashMap<String, config::ColorConfig>,
-) {
-    let is_running = Rc::new(Cell::new(true));
-    let display = Rc::new(display);
+    let pair1 = Arc::new((Mutex::new(Vec::new()), Condvar::new()));
+    let pair2 = pair1.clone();
 
-    // Create connection and register bus name
-    let connection = Connection::get_private(BusType::Session).unwrap();
-    connection.register_name(BUS_NAME, NameFlag::ReplaceExisting as u32).unwrap();
+    thread::spawn(move || {
+        for stream in socket.incoming() {
+            match stream {
+                Ok(mut stream) => {
+                    let &(ref lock, ref cvar) = &*pair2;
+                    let mut buffer = lock.lock().unwrap();
+                    *buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
+                    stream.read_to_end(&mut buffer).expect("Failed to read request.");
+                    cvar.notify_one();
+                },
+                Err(err) => println!("Error with incoming connection: {}.", err),
+            }
+        }
+    });
 
-    let tree = create_tree(&display, global_config, color_configs, is_running.clone());
+    let &(ref lock, ref cvar) = &*pair1;
+    let mut buffer = lock.lock().unwrap();
 
-    // Register object paths
-    tree.set_registered(&connection, true).unwrap();
+    loop {
+        let result = cvar.wait_timeout(buffer, Duration::from_millis(global_config.timeout)).unwrap();
+        buffer = result.0;
 
-    connection.add_handler(tree);
+        if result.1.timed_out() {
+            display.hide();
+            continue;
+        }
 
-    for connection_item in connection.iter(1000) {
-        if !is_running.get() {
-            break;
+        match deserialize(&buffer).unwrap() {
+            // TODO: handle invalid profile
+            Request::Show { profile, value } => display.show(value, &global_config, &color_configs[&profile]),
+            Request::Hide => display.hide(),
+            Request::Stop => break,
         }
     }
+
+    // Handle failed to remove socket path
+    fs::remove_file(SOCKET_PATH).unwrap();
 }

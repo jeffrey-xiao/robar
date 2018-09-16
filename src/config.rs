@@ -3,8 +3,10 @@ use std::fs::File;
 use std::io::prelude::Read;
 use std::path::Path;
 use toml;
+use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
+use std::fmt;
 
-// TODO: Add icon, transparency, follow, fill direction
+// TODO: Add icon, follow, fill direction
 #[derive(Deserialize, Debug)]
 pub struct GlobalConfig {
     #[serde(default)]
@@ -27,9 +29,14 @@ pub struct GlobalConfig {
     #[serde(default)]
     pub width_relative: u32,
     pub width_absolute: u32,
+
+    #[serde(default = "GlobalConfig::default_timeout")]
+    pub timeout: u64,
 }
 
 impl GlobalConfig {
+    fn default_timeout() -> u64 { 1000 }
+
     pub fn width_to_margin(&self) -> u32 {
         self.width_to_border() + 2 * self.margin
     }
@@ -53,7 +60,7 @@ impl GlobalConfig {
     pub fn height_to_padding(&self) -> u32 {
         self.height() + 2 * self.padding
     }
-    
+
     pub fn width(&self) -> u32 {
         self.width_absolute
     }
@@ -69,7 +76,7 @@ impl GlobalConfig {
     pub fn y(&self) -> u32 {
         self.y_center() - self.height_to_margin() / 2
     }
-    
+
     pub fn x_center(&self) -> u32 {
         self.x_center_absolute
     }
@@ -79,11 +86,93 @@ impl GlobalConfig {
     }
 }
 
-#[derive(Deserialize, Debug)]
 pub struct ColorConfig {
-    foreground: String,
-    background: String,
-    border: String,
+    pub foreground: u32,
+    pub background: u32,
+    pub border: u32,
+}
+
+impl ColorConfig {
+    pub fn new(foreground: String, background: String, border: String) -> Self {
+        let foreground = u32::from_str_radix(&foreground[1..], 16).expect("Could not parse color");
+        let background = u32::from_str_radix(&background[1..], 16).expect("Could not parse color");
+        let border = u32::from_str_radix(&border[1..], 16).expect("Could not parse color");
+
+        ColorConfig { foreground, background, border }
+    }
+}
+
+impl<'de> Deserialize<'de> for ColorConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field { Foreground, Background, Border }
+
+        struct ColorConfigVisitor;
+
+        impl<'de> Visitor<'de> for ColorConfigVisitor {
+            type Value = ColorConfig;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct ColorConfig")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<ColorConfig, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let foreground = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let background = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let border = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                Ok(ColorConfig::new(foreground, background, border))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<ColorConfig, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut foreground = None;
+                let mut background = None;
+                let mut border = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Foreground => {
+                            if foreground.is_some() {
+                                return Err(de::Error::duplicate_field("foreground"));
+                            }
+                            foreground = Some(map.next_value()?);
+                        },
+                        Field::Background => {
+                            if background.is_some() {
+                                return Err(de::Error::duplicate_field("background"));
+                            }
+                            background = Some(map.next_value()?);
+                        },
+                        Field::Border => {
+                            if border.is_some() {
+                                return Err(de::Error::duplicate_field("border"));
+                            }
+                            border = Some(map.next_value()?);
+                        },
+                    }
+                }
+
+                let foreground = foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
+                let background = background.ok_or_else(|| de::Error::missing_field("background"))?;
+                let border = border.ok_or_else(|| de::Error::missing_field("border"))?;
+                Ok(ColorConfig::new(foreground, background, border))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["secs", "nanos"];
+        deserializer.deserialize_struct("ColorConfig", FIELDS, ColorConfigVisitor)
+    }
 }
 
 pub fn parse_config<P>(config_path: P) -> (GlobalConfig, HashMap<String, ColorConfig>)

@@ -18,8 +18,8 @@ travis-ci = { repository = "jeffrey-xiao/x11-overlay-bar-rs", branch = "master" 
 codecov = { repository = "jeffrey-xiao/x11-overlay-bar-rs", service = "gitlab" }
 
 [dependencies]
+bincode = "1.0"
 clap = "2.32"
-dbus = "0.6"
 xcb = "0.8"
 toml = "0.4"
 serde_derive = "1.0"
