@@ -1,10 +1,11 @@
+use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::Read;
 use std::path::Path;
+use super::ParseError;
 use toml;
-use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
-use std::fmt;
 
 // TODO: Add icon, follow, fill direction
 #[derive(Deserialize, Debug)]
@@ -94,9 +95,12 @@ pub struct ColorConfig {
 
 impl ColorConfig {
     pub fn new(foreground: String, background: String, border: String) -> Self {
-        let foreground = u32::from_str_radix(&foreground[1..], 16).expect("Could not parse color");
-        let background = u32::from_str_radix(&background[1..], 16).expect("Could not parse color");
-        let border = u32::from_str_radix(&border[1..], 16).expect("Could not parse color");
+        let foreground = u32::from_str_radix(&foreground[1..], 16)
+            .expect(format!("Could not parse color: {}", foreground));
+        let background = u32::from_str_radix(&background[1..], 16)
+            .expect(format!("Could not parse color: {}", background));
+        let border = u32::from_str_radix(&border[1..], 16)
+            .expect(format!("Could not parse color: {}", border));
 
         ColorConfig { foreground, background, border }
     }
@@ -175,34 +179,47 @@ impl<'de> Deserialize<'de> for ColorConfig {
     }
 }
 
-pub fn parse_config<P>(config_path: P) -> (GlobalConfig, HashMap<String, ColorConfig>)
+pub fn parse_config<P>(config_path: P) -> super::Result<(GlobalConfig, HashMap<String, ColorConfig>)>
 where
     P: AsRef<Path>,
 {
-    let mut config_file = File::open(&config_path).expect("File does not exist.");
+    let mut config_file = File::open(&config_path)?;
     let mut raw_config = String::new();
-    config_file.read_to_string(&mut raw_config).expect("Failed to read config.");
+    config_file.read_to_string(&mut raw_config)?;
 
-    let toml_value = raw_config.parse::<toml::Value>().expect("Failed to parse config file.");
+    let toml_value = raw_config
+        .parse::<toml::Value>()
+        .map_err(|err| ParseError(err.to_string()))?;
     let mut toml_table = match toml_value {
-        toml::Value::Table(table) => table,
-        _ => panic!("Failed to parse toml config file: Expected table at root."),
-    };
+        toml::Value::Table(table) => Ok(table),
+        _ => Err(ParseError("Expected table at root of config file.".to_string())),
+    }?;
 
-    let global_value = toml_table.remove("global").take().expect("Missing global section.");
-    let global_config = global_value.try_into::<GlobalConfig>().expect("Failed to parse.");
+    let global_value = toml_table
+        .remove("global")
+        .take()
+        .ok_or(ParseError("Expected `global` section in config file.".to_string()))?;
+    let global_config = global_value
+        .try_into::<GlobalConfig>()
+        .map_err(|err| ParseError(err.to_string()))?;
 
-    let color_values = toml_table.remove("colors").take().expect("Missing colors section.");
+    let color_values = toml_table
+        .remove("colors")
+        .take()
+        .ok_or(ParseError("Expected `colors` section in config file.".to_string()))?;
+
     let mut color_configs = HashMap::new();
-
     let color_values = match color_values {
-        toml::Value::Table(table) => table,
-        _ => panic!("Failed to parse toml config file: Expected array in global table."),
-    };
+        toml::Value::Table(table) => Ok(table),
+        _ => Err(ParseError("Expected array in `colors` section of config file.".to_string())),
+    }?;
 
     for (profile_name, color_value) in color_values {
-        color_configs.insert(profile_name, color_value.try_into::<ColorConfig>().expect("Failed to parse"));
+        let color_config = color_value
+            .try_into::<ColorConfig>()
+            .map_err(|err| ParseError(err.to_string()))?;
+        color_configs.insert(profile_name, color_config);
     }
 
-    (global_config, color_configs)
+    Ok((global_config, color_configs))
 }

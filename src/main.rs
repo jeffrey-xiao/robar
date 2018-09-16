@@ -19,9 +19,28 @@ use std::path::{Path, PathBuf};
 use std::result;
 
 #[derive(Debug)]
+pub struct ParseError(String);
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid first item to double")
+    }
+}
+
+impl error::Error for ParseError {
+    fn description(&self) -> &str {
+        self.0.as_str()
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
+}
+
+#[derive(Debug)]
 pub enum Error {
     IOError(io::Error),
     SerdeError(bincode::Error),
+    ParseError(ParseError),
 }
 
 impl From<io::Error> for Error {
@@ -36,11 +55,18 @@ impl From<bincode::Error> for Error {
     }
 }
 
+impl From<ParseError> for Error {
+    fn from(err: ParseError) -> Error {
+        Error::ParseError(err)
+    }
+}
+
 impl error::Error for Error {
     fn description(&self) -> &str {
         match self {
             Error::IOError(ref error) => error.description(),
             Error::SerdeError(ref error) => error.description(),
+            Error::ParseError(ref error) => error.description(),
         }
     }
 
@@ -48,6 +74,7 @@ impl error::Error for Error {
         match self {
             Error::IOError(ref error) => error.cause(),
             Error::SerdeError(ref error) => error.cause(),
+            Error::ParseError(ref error) => error.cause(),
         }
     }
 }
@@ -57,13 +84,14 @@ impl fmt::Display for Error {
         match self {
             Error::IOError(ref error) => write!(f, "{}", error),
             Error::SerdeError(ref error) => write!(f, "{}", error),
+            Error::ParseError(ref error) => write!(f, "{}", error),
         }
     }
 }
 
 pub type Result<T> = result::Result<T, Error>;
 
-fn main() {
+fn run() -> Result<()> {
     let matches = App::new("x11-overlay-bar-rs")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Jeffrey Xiao <jeffrey.xiao1998@gmail.com>")
@@ -106,7 +134,7 @@ fn main() {
                     Path::new(config_home_dir).join("rob").join("rob.toml")
                 }
             };
-            let (global_config, color_configs) = config::parse_config(config_path);
+            let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
             server::start_server(display, global_config, color_configs);
         },
@@ -114,16 +142,18 @@ fn main() {
             client::show(
                 matches.value_of("profile").expect("Expected `profile` to exist.").to_owned(),
                 matches.value_of("value").expect("Expected `value` to exist.").parse().unwrap(),
-            );
+            )
         },
         ("hide", Some(matches)) => {
-            client::hide();
+            client::hide()
         },
         ("stop", Some(matches)) => {
-            client::stop();
+            client::stop()
         },
-        _ => {
+        _ => {},
+    };
+}
 
-        },
-    }
+fn main() {
+
 }
