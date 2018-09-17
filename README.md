@@ -1,6 +1,7 @@
 # robar
 
 ![Screencast of robar](examples/screencast.gif)
+
 `robar` is a simple, but flexible system overlay bar for the X Window System (X11) using Unix
 Sockets. Inspired by [`xob`](https://github.com/florentc/xob).
 
