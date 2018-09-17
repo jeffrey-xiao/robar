@@ -34,10 +34,10 @@ pub struct GlobalConfig {
     pub padding: u32,
 
     #[serde(default)]
-    pub height_relative: u32,
+    pub height_relative: f32,
     pub height_absolute: u32,
     #[serde(default)]
-    pub width_relative: u32,
+    pub width_relative: f32,
     pub width_absolute: u32,
 
     #[serde(default = "GlobalConfig::default_timeout")]
@@ -49,52 +49,36 @@ pub struct GlobalConfig {
 impl GlobalConfig {
     fn default_timeout() -> u64 { 1000 }
 
-    pub fn width_to_margin(&self) -> u32 {
-        self.width_to_border() + 2 * self.margin
+    pub fn total_width(&self, screen_width: u32) -> u32 {
+        2 * (self.border + self.margin + self.padding) + self.width(screen_width)
     }
 
-    pub fn width_to_border(&self) -> u32 {
-        self.width_to_padding() + 2 * self.border
+    pub fn total_height(&self, screen_height: u32) -> u32 {
+        2 * (self.border + self.margin + self.padding) + self.height(screen_height)
     }
 
-    pub fn width_to_padding(&self) -> u32 {
-        self.width() + 2 * self.padding
+    pub fn width(&self, screen_width: u32) -> u32 {
+        self.width_absolute + f32::round(screen_width as f32 * self.width_relative) as u32
     }
 
-    pub fn height_to_margin(&self) -> u32 {
-        self.height_to_border() + 2 * self.margin
+    pub fn height(&self, screen_height: u32) -> u32 {
+        self.height_absolute + f32::round(screen_height as f32 * self.height_relative) as u32
     }
 
-    pub fn height_to_border(&self) -> u32 {
-        self.height_to_padding() + 2 * self.border
+    pub fn x(&self, screen_width: u32) -> u32 {
+        self.x_center(screen_width) - self.total_width(screen_width) / 2
     }
 
-    pub fn height_to_padding(&self) -> u32 {
-        self.height() + 2 * self.padding
+    pub fn y(&self, screen_height: u32) -> u32 {
+        self.y_center(screen_height) - self.total_height(screen_height) / 2
     }
 
-    pub fn width(&self) -> u32 {
-        self.width_absolute
+    pub fn x_center(&self, screen_width: u32) -> u32 {
+        self.x_center_absolute + f32::round(screen_width as f32 * self.x_center_relative) as u32
     }
 
-    pub fn height(&self) -> u32 {
-        self.height_absolute
-    }
-
-    pub fn x(&self) -> u32 {
-        self.x_center() - self.width_to_margin() / 2
-    }
-
-    pub fn y(&self) -> u32 {
-        self.y_center() - self.height_to_margin() / 2
-    }
-
-    pub fn x_center(&self) -> u32 {
-        self.x_center_absolute
-    }
-
-    pub fn y_center(&self) -> u32 {
-        self.y_center_absolute
+    pub fn y_center(&self, screen_height: u32) -> u32 {
+        self.y_center_absolute + f32::round(screen_height as f32 * self.y_center_relative) as u32
     }
 }
 

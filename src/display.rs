@@ -8,6 +8,13 @@ pub struct Display {
     screen_index: usize,
 }
 
+struct ScreenInfo {
+    width: u32,
+    height: u32,
+    x: i16,
+    y: i16,
+}
+
 impl Display {
     fn init_window(&self) {
         let screen = self.connection
@@ -87,15 +94,68 @@ impl Display {
         Ok(ret)
     }
 
-    fn configure_window(&self, global_config: &config::GlobalConfig) {
+    fn get_size_and_offset(&self) -> ScreenInfo {
+        let dummy_window = self.connection.generate_id();
+        let screen = self.connection
+            .get_setup()
+            .roots()
+            .nth(self.screen_index)
+            .expect("Expected screen to exist.");
+
+        xcb::create_window(
+            &self.connection,
+            0,
+            dummy_window,
+            screen.root(),
+            0, 0,
+            1, 1,
+            0, 0, 0,
+            &[],
+        );
+
+        self.connection.flush();
+
+        let sr_cookie = xcb::randr::get_screen_resources(&self.connection, dummy_window);
+        let sr_reply = sr_cookie.get_reply().expect("Could not get screen resources.");
+        let pointer_cookie = xcb::query_pointer(&self.connection, dummy_window);
+        let pointer_reply = pointer_cookie.get_reply().expect("Could not get pointer position.");
+        xcb::destroy_window(&self.connection, dummy_window);
+
+        let x = pointer_reply.root_x();
+        let y = pointer_reply.root_y();
+        let crtcs = sr_reply.crtcs();
+        for crtc in crtcs {
+            let crtc_cookie = xcb::randr::get_crtc_info(&self.connection, *crtc, 0);
+            if let Ok(reply) = crtc_cookie.get_reply() {
+                if reply.x() <= x && x < reply.x() + reply.width() as i16
+                    && reply.y() <= y && y < reply.y() + reply.height() as i16 {
+                    return ScreenInfo {
+                        width: reply.width() as u32,
+                        height: reply.height() as u32,
+                        x: reply.x(),
+                        y: reply.y(),
+                    }
+                }
+            }
+        }
+
+        panic!("Pointer location was not on any screen.");
+    }
+
+    fn configure_window(&self, screen_info: &ScreenInfo, global_config: &config::GlobalConfig) {
+        let width = global_config.total_width(screen_info.width);
+        let height = global_config.total_height(screen_info.height);
+        let x = global_config.x(screen_info.width) + screen_info.x as u32;
+        let y = global_config.y(screen_info.height) + screen_info.y as u32;
+
         xcb::configure_window(
             &self.connection,
             self.window,
             &[
-                (xcb::CONFIG_WINDOW_WIDTH as u16, global_config.width_to_margin()),
-                (xcb::CONFIG_WINDOW_HEIGHT as u16, global_config.height_to_margin()),
-                (xcb::CONFIG_WINDOW_X as u16, global_config.x()),
-                (xcb::CONFIG_WINDOW_Y as u16, global_config.y()),
+                (xcb::CONFIG_WINDOW_WIDTH as u16, width),
+                (xcb::CONFIG_WINDOW_HEIGHT as u16, height),
+                (xcb::CONFIG_WINDOW_X as u16, x),
+                (xcb::CONFIG_WINDOW_Y as u16, y),
                 (xcb::CONFIG_WINDOW_STACK_MODE as u16, xcb::STACK_MODE_ABOVE),
             ],
         );
@@ -110,13 +170,14 @@ impl Display {
     fn draw_bar(
         &self,
         value: f64,
+        screen_info: &ScreenInfo,
         global_config: &config::GlobalConfig,
         color_config: &config::ColorConfig,
     ) {
         let mut x = 0;
         let mut y = 0;
-        let mut width = global_config.width_to_margin() as u16;
-        let mut height = global_config.height_to_margin() as u16;
+        let mut width = global_config.total_width(screen_info.width) as u16;
+        let mut height = global_config.total_height(screen_info.height) as u16;
         self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
         x += global_config.margin as i16;
@@ -131,8 +192,8 @@ impl Display {
         height -= global_config.border as u16 * 2;
         self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
-        let height_diff = f64::from(global_config.height()) * (1.0 - value);
-        let width_diff = f64::from(global_config.width()) * (1.0 - value);
+        let height_diff = f64::from(global_config.height(screen_info.height)) * (1.0 - value);
+        let width_diff = f64::from(global_config.width(screen_info.width)) * (1.0 - value);
 
         x += global_config.padding as i16;
         y += global_config.padding as i16;
@@ -165,9 +226,10 @@ impl Display {
         global_config: &config::GlobalConfig,
         color_config: &config::ColorConfig,
     ) {
+        let screen_info = self.get_size_and_offset();
         xcb::map_window(&self.connection, self.window);
-        self.configure_window(global_config);
-        self.draw_bar(value, global_config, color_config);
+        self.configure_window(&screen_info, global_config);
+        self.draw_bar(value, &screen_info, global_config, color_config);
         self.connection.flush();
     }
 

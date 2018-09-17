@@ -1,3 +1,4 @@
+extern crate libc;
 extern crate bincode;
 extern crate clap;
 extern crate serde;

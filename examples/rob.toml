@@ -1,12 +1,14 @@
 [global]
-x_center_absolute = 1000
-y_center_absolute = 300
+x_center_relative = 0.9
+x_center_absolute = 0
+y_center_relative = 0.25
+y_center_absolute = 0
 height_absolute = 200
 width_absolute = 30
 padding = 2
 border = 3
 margin = 2
-fill_direction = "left"
+fill_direction = "up"
 
 [colors.default]
 foreground = "#eee8e5"
