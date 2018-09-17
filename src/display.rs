@@ -132,10 +132,30 @@ impl Display {
         self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
 
         let height_diff = f64::from(global_config.height()) * (1.0 - value);
+        let width_diff = f64::from(global_config.width()) * (1.0 - value);
+
         x += global_config.padding as i16;
         y += global_config.padding as i16;
         width -= global_config.padding as u16 * 2;
-        height -= global_config.padding as u16 * 2 + height_diff as u16;
+        height -= global_config.padding as u16 * 2;
+
+        match global_config.fill_direction {
+            config::Direction::Up => {
+                y += height_diff as i16;
+                height -= height_diff as u16;
+            },
+            config::Direction::Down => {
+                height -= height_diff as u16;
+            },
+            config::Direction::Left => {
+                x += width_diff as i16;
+                width -= width_diff as u16;
+            },
+            config::Direction::Right => {
+                width -= width_diff as u16;
+            },
+        }
+
         self.draw_rectangle(color_config.foreground, xcb::Rectangle::new(x, y, width, height));
     }
 

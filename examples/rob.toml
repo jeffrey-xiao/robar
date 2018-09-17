@@ -6,7 +6,7 @@ width_absolute = 30
 padding = 2
 border = 3
 margin = 2
-fill_direction = "up"
+fill_direction = "left"
 
 [colors.default]
 foreground = "#eee8e5"
