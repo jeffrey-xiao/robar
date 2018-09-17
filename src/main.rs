@@ -133,7 +133,9 @@ fn run() -> Result<()> {
                 Some(config) => PathBuf::from(config),
                 None => {
                     let config_home_dir = option_env!("XDG_CONFIG_HOME").unwrap_or("$HOME/.config");
-                    Path::new(config_home_dir).join("rob").join("rob.toml")
+                    Path::new(config_home_dir)
+                        .join(env!("CARGO_PKG_VERSION"))
+                        .join(format!("{}.toml", env!("CARGO_PKG_VERSION")))
                 }
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;

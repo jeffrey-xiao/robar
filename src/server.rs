@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, Condvar};
 use super::Result;
 
 pub const MAX_REQUEST_SIZE: usize = 32;
-pub const SOCKET_PATH: &str = "/tmp/rob";
+pub const SOCKET_PATH: &str = "/tmp/robar";
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
