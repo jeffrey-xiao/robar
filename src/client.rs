@@ -1,8 +1,8 @@
+use super::Result;
 use bincode::serialize;
 use server;
 use std::io::Write;
 use std::os::unix::net::UnixStream;
-use super::Result;
 
 pub fn show(profile: String, value: f64) -> Result<()> {
     let mut socket = UnixStream::connect(server::SOCKET_PATH)?;

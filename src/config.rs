@@ -1,10 +1,10 @@
-use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
+use super::ParseError;
+use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::Read;
 use std::path::Path;
-use super::ParseError;
 use toml;
 
 #[derive(Copy, Clone, Deserialize, Debug)]
@@ -47,7 +47,9 @@ pub struct GlobalConfig {
 }
 
 impl GlobalConfig {
-    fn default_timeout() -> u64 { 1000 }
+    fn default_timeout() -> u64 {
+        1000
+    }
 
     pub fn total_width(&self, screen_width: u32) -> u32 {
         2 * (self.border + self.margin + self.padding) + self.width(screen_width)
@@ -97,7 +99,11 @@ impl ColorConfig {
         let border = u32::from_str_radix(&border[1..], 16)
             .unwrap_or_else(|_| panic!("Could not parse color: {}", border));
 
-        ColorConfig { foreground, background, border }
+        ColorConfig {
+            foreground,
+            background,
+            border,
+        }
     }
 }
 
@@ -108,7 +114,11 @@ impl<'de> Deserialize<'de> for ColorConfig {
     {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "lowercase")]
-        enum Field { Foreground, Background, Border }
+        enum Field {
+            Foreground,
+            Background,
+            Border,
+        }
 
         struct ColorConfigVisitor;
 
@@ -123,13 +133,20 @@ impl<'de> Deserialize<'de> for ColorConfig {
             where
                 V: SeqAccess<'de>,
             {
-                let foreground: String = seq.next_element()?
+                let foreground: String = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let background: String = seq.next_element()?
+                let background: String = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let border: String = seq.next_element()?
+                let border: String = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                Ok(ColorConfig::new(foreground.as_ref(), background.as_ref(), border.as_ref()))
+                Ok(ColorConfig::new(
+                    foreground.as_ref(),
+                    background.as_ref(),
+                    border.as_ref(),
+                ))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<ColorConfig, V::Error>
@@ -162,10 +179,16 @@ impl<'de> Deserialize<'de> for ColorConfig {
                     }
                 }
 
-                let foreground = foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
-                let background = background.ok_or_else(|| de::Error::missing_field("background"))?;
+                let foreground =
+                    foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
+                let background =
+                    background.ok_or_else(|| de::Error::missing_field("background"))?;
                 let border = border.ok_or_else(|| de::Error::missing_field("border"))?;
-                Ok(ColorConfig::new(foreground.as_ref(), background.as_ref(), border.as_ref()))
+                Ok(ColorConfig::new(
+                    foreground.as_ref(),
+                    background.as_ref(),
+                    border.as_ref(),
+                ))
             }
         }
 
@@ -174,7 +197,9 @@ impl<'de> Deserialize<'de> for ColorConfig {
     }
 }
 
-pub fn parse_config<P>(config_path: P) -> super::Result<(GlobalConfig, HashMap<String, ColorConfig>)>
+pub fn parse_config<P>(
+    config_path: P,
+) -> super::Result<(GlobalConfig, HashMap<String, ColorConfig>)>
 where
     P: AsRef<Path>,
 {
@@ -187,7 +212,11 @@ where
         .map_err(|err| ParseError(err.to_string()))?;
     let mut toml_table = match toml_value {
         toml::Value::Table(table) => Ok(table),
-        _ => Err(ParseError("Expected table at root of config file.".to_string())),
+        _ => {
+            Err(ParseError(
+                "Expected table at root of config file.".to_string(),
+            ))
+        },
     }?;
 
     let global_value = toml_table
@@ -206,7 +235,11 @@ where
     let mut color_configs = HashMap::new();
     let color_values = match color_values {
         toml::Value::Table(table) => Ok(table),
-        _ => Err(ParseError("Expected array in `colors` section of config file.".to_string())),
+        _ => {
+            Err(ParseError(
+                "Expected array in `colors` section of config file.".to_string(),
+            ))
+        },
     }?;
 
     for (profile_name, color_value) in color_values {

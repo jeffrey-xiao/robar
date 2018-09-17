@@ -17,7 +17,8 @@ struct ScreenInfo {
 
 impl Display {
     fn init_window(&self) {
-        let screen = self.connection
+        let screen = self
+            .connection
             .get_setup()
             .roots()
             .nth(self.screen_index)
@@ -28,28 +29,26 @@ impl Display {
             xcb::COPY_FROM_PARENT as u8,
             self.window,
             screen.root(),
-            0, 0,
-            1, 1,
+            0,
+            0,
+            1,
+            1,
             0,
             xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
             screen.root_visual(),
-            &[(xcb::CW_OVERRIDE_REDIRECT, 1)]
+            &[(xcb::CW_OVERRIDE_REDIRECT, 1)],
         );
     }
 
     fn init_gc(&self) {
-        let screen = self.connection
+        let screen = self
+            .connection
             .get_setup()
             .roots()
             .nth(self.screen_index)
             .expect("Expected screen to exist.");
 
-        xcb::create_gc(
-            &self.connection,
-            self.gc,
-            screen.root(),
-            &[],
-        );
+        xcb::create_gc(&self.connection, self.gc, screen.root(), &[]);
     }
 
     pub fn new() -> Result<Self, xcb::ConnError> {
@@ -76,7 +75,7 @@ impl Display {
             xcb::ATOM_WM_NAME,
             xcb::ATOM_STRING,
             8,
-            title.as_bytes()
+            title.as_bytes(),
         );
 
         xcb::change_property(
@@ -86,7 +85,7 @@ impl Display {
             xcb::ATOM_WM_CLASS,
             xcb::ATOM_STRING,
             8,
-            title.as_bytes()
+            title.as_bytes(),
         );
 
         ret.connection.flush();
@@ -96,7 +95,8 @@ impl Display {
 
     fn get_size_and_offset(&self) -> ScreenInfo {
         let dummy_window = self.connection.generate_id();
-        let screen = self.connection
+        let screen = self
+            .connection
             .get_setup()
             .roots()
             .nth(self.screen_index)
@@ -107,18 +107,26 @@ impl Display {
             0,
             dummy_window,
             screen.root(),
-            0, 0,
-            1, 1,
-            0, 0, 0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
             &[],
         );
 
         self.connection.flush();
 
         let sr_cookie = xcb::randr::get_screen_resources(&self.connection, dummy_window);
-        let sr_reply = sr_cookie.get_reply().expect("Could not get screen resources.");
+        let sr_reply = sr_cookie
+            .get_reply()
+            .expect("Could not get screen resources.");
         let pointer_cookie = xcb::query_pointer(&self.connection, dummy_window);
-        let pointer_reply = pointer_cookie.get_reply().expect("Could not get pointer position.");
+        let pointer_reply = pointer_cookie
+            .get_reply()
+            .expect("Could not get pointer position.");
         xcb::destroy_window(&self.connection, dummy_window);
 
         let x = pointer_reply.root_x();
@@ -127,14 +135,17 @@ impl Display {
         for crtc in crtcs {
             let crtc_cookie = xcb::randr::get_crtc_info(&self.connection, *crtc, 0);
             if let Ok(reply) = crtc_cookie.get_reply() {
-                if reply.x() <= x && x < reply.x() + reply.width() as i16
-                    && reply.y() <= y && y < reply.y() + reply.height() as i16 {
+                if reply.x() <= x
+                    && x < reply.x() + reply.width() as i16
+                    && reply.y() <= y
+                    && y < reply.y() + reply.height() as i16
+                {
                     return ScreenInfo {
                         width: reply.width() as u32,
                         height: reply.height() as u32,
                         x: reply.x(),
                         y: reply.y(),
-                    }
+                    };
                 }
             }
         }
@@ -178,19 +189,28 @@ impl Display {
         let mut y = 0;
         let mut width = global_config.total_width(screen_info.width) as u16;
         let mut height = global_config.total_height(screen_info.height) as u16;
-        self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(
+            color_config.background,
+            xcb::Rectangle::new(x, y, width, height),
+        );
 
         x += global_config.margin as i16;
         y += global_config.margin as i16;
         width -= global_config.margin as u16 * 2;
         height -= global_config.margin as u16 * 2;
-        self.draw_rectangle(color_config.border, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(
+            color_config.border,
+            xcb::Rectangle::new(x, y, width, height),
+        );
 
         x += global_config.border as i16;
         y += global_config.border as i16;
         width -= global_config.border as u16 * 2;
         height -= global_config.border as u16 * 2;
-        self.draw_rectangle(color_config.background, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(
+            color_config.background,
+            xcb::Rectangle::new(x, y, width, height),
+        );
 
         let height_diff = f64::from(global_config.height(screen_info.height)) * (1.0 - value);
         let width_diff = f64::from(global_config.width(screen_info.width)) * (1.0 - value);
@@ -217,7 +237,10 @@ impl Display {
             },
         }
 
-        self.draw_rectangle(color_config.foreground, xcb::Rectangle::new(x, y, width, height));
+        self.draw_rectangle(
+            color_config.foreground,
+            xcb::Rectangle::new(x, y, width, height),
+        );
     }
 
     pub fn show(

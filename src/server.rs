@@ -1,24 +1,21 @@
+use super::Result;
+use bincode::deserialize;
 use config;
 use display;
-use bincode::deserialize;
 use std::collections::HashMap;
+use std::fs;
 use std::io::Read;
 use std::os::unix::net::UnixListener;
-use std::fs;
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::sync::{Arc, Mutex, Condvar};
-use super::Result;
 
 pub const MAX_REQUEST_SIZE: usize = 32;
 pub const SOCKET_PATH: &str = "/tmp/robar";
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
-    Show {
-        profile: String,
-        value: f64,
-    },
+    Show { profile: String, value: f64 },
     Hide,
     Stop,
 }
@@ -60,7 +57,9 @@ pub fn start_server(
     let mut buffer = lock.lock().unwrap();
 
     loop {
-        let result = cvar.wait_timeout(buffer, Duration::from_millis(global_config.timeout)).unwrap();
+        let result = cvar
+            .wait_timeout(buffer, Duration::from_millis(global_config.timeout))
+            .unwrap();
         buffer = result.0;
 
         if result.1.timed_out() {
@@ -69,7 +68,9 @@ pub fn start_server(
         }
 
         match deserialize(&buffer).unwrap() {
-            Request::Show { profile, value } => display.show(value, &global_config, &color_configs[&profile]),
+            Request::Show { profile, value } => {
+                display.show(value, &global_config, &color_configs[&profile])
+            },
             Request::Hide => display.hide(),
             Request::Stop => break,
         }

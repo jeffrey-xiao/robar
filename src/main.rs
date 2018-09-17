@@ -1,6 +1,6 @@
-extern crate libc;
 extern crate bincode;
 extern crate clap;
+extern crate libc;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -12,7 +12,7 @@ mod config;
 mod display;
 mod server;
 
-use clap::{Arg, App, SubCommand};
+use clap::{App, Arg, SubCommand};
 use std::error;
 use std::fmt;
 use std::io;
@@ -98,32 +98,31 @@ fn run() -> Result<()> {
         .version(env!("CARGO_PKG_VERSION"))
         .author("Jeffrey Xiao <jeffrey.xiao1998@gmail.com>")
         .about("A simple, but flexible system overlay bar for the X Window System (X11).")
-        .subcommand(SubCommand::with_name("start")
-            .about("Starts daemon that listens to requests.")
-            .arg(
-                Arg::with_name("config")
-                    .help("Path to configuration file.")
-                    .takes_value(true)
-                    .short("c")
-                    .long("config")
-            )
-        )
-        .subcommand(SubCommand::with_name("show")
-            .about("Shows bar with a specific value and in a specific color profile.")
-            .arg(
-                Arg::with_name("profile")
-                    .help("The color profile to use.")
-                    .index(1)
-                    .required(true)
-            )
-            .arg(
-                Arg::with_name("value")
-                    .help("The value of the bar.")
-                    .index(2)
-                    .required(true)
-            )
-        )
-        .subcommand(SubCommand::with_name("hide").about("Hides the bar."))
+        .subcommand(
+            SubCommand::with_name("start")
+                .about("Starts daemon that listens to requests.")
+                .arg(
+                    Arg::with_name("config")
+                        .help("Path to configuration file.")
+                        .takes_value(true)
+                        .short("c")
+                        .long("config"),
+                ),
+        ).subcommand(
+            SubCommand::with_name("show")
+                .about("Shows bar with a specific value and in a specific color profile.")
+                .arg(
+                    Arg::with_name("profile")
+                        .help("The color profile to use.")
+                        .index(1)
+                        .required(true),
+                ).arg(
+                    Arg::with_name("value")
+                        .help("The value of the bar.")
+                        .index(2)
+                        .required(true),
+                ),
+        ).subcommand(SubCommand::with_name("hide").about("Hides the bar."))
         .subcommand(SubCommand::with_name("stop").about("Stops daemon."))
         .get_matches();
 
@@ -136,7 +135,7 @@ fn run() -> Result<()> {
                     Path::new(config_home_dir)
                         .join(env!("CARGO_PKG_VERSION"))
                         .join(format!("{}.toml", env!("CARGO_PKG_VERSION")))
-                }
+                },
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
@@ -144,8 +143,15 @@ fn run() -> Result<()> {
         },
         ("show", Some(matches)) => {
             client::show(
-                matches.value_of("profile").expect("Expected `profile` to exist.").to_owned(),
-                matches.value_of("value").expect("Expected `value` to exist.").parse().unwrap(),
+                matches
+                    .value_of("profile")
+                    .expect("Expected `profile` to exist.")
+                    .to_owned(),
+                matches
+                    .value_of("value")
+                    .expect("Expected `value` to exist.")
+                    .parse()
+                    .unwrap(),
             )
         },
         ("hide", Some(_)) => client::hide(),
