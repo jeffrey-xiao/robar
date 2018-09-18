@@ -1,3 +1,4 @@
+use super::{Error, Result};
 use bincode::{deserialize, serialize};
 use config;
 use display;
@@ -9,7 +10,6 @@ use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
-use super::{Error, Result};
 
 pub const MAX_REQUEST_SIZE: usize = 32;
 pub const SOCKET_PATH: &str = "/tmp/robar";
@@ -24,14 +24,16 @@ pub enum Request {
 
 fn validate_request(
     color_configs: &HashMap<String, config::ColorConfig>,
-    buffer: Vec<u8>
+    buffer: Vec<u8>,
 ) -> Result<Request> {
-    let request = deserialize(&buffer)
-        .map_err(|err| Error::new("deserializing request", err))?;
+    let request = deserialize(&buffer).map_err(|err| Error::new("deserializing request", err))?;
 
     if let Request::Show { ref profile, .. } = request {
         if !color_configs.contains_key(profile) {
-            return Err(Error::from_description("processing request", format!("Color profile `{}` not found.", profile)));
+            return Err(Error::from_description(
+                "processing request",
+                format!("Color profile `{}` not found.", profile),
+            ));
         }
     }
 
@@ -44,13 +46,12 @@ pub fn start_server(
     color_configs: HashMap<String, config::ColorConfig>,
 ) -> Result<()> {
     if Path::new(SOCKET_PATH).exists() {
-        fs::remove_file(SOCKET_PATH)
-            .map_err(|err| Error::new("removing existing socket", err))?;
+        fs::remove_file(SOCKET_PATH).map_err(|err| Error::new("removing existing socket", err))?;
     }
 
     let color_configs_clone = color_configs.clone();
-    let socket = UnixListener::bind(SOCKET_PATH)
-        .map_err(|err| Error::new("binding socket", err))?;
+    let socket =
+        UnixListener::bind(SOCKET_PATH).map_err(|err| Error::new("binding socket", err))?;
 
     let pair1 = Arc::new((Mutex::new(Request::Empty), Condvar::new()));
     let pair2 = pair1.clone();
@@ -70,16 +71,23 @@ pub fn start_server(
             *request = Request::Empty;
 
             let mut buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
-            let mut result = stream.read_to_end(&mut buffer)
+            let mut result = stream
+                .read_to_end(&mut buffer)
                 .map_err(|err| Error::new("reading request", err));
 
             if result.is_ok() {
                 match validate_request(&color_configs_clone, buffer) {
                     Ok(new_request) => {
                         *request = new_request;
-                        stream.write_all(&serialize(&Ok::<(), Error>(())).unwrap()).unwrap();
-                    }
-                    Err(err) => stream.write_all(&serialize(&Err::<(), Error>(err)).unwrap()).unwrap(),
+                        stream
+                            .write_all(&serialize(&Ok::<(), Error>(())).unwrap())
+                            .unwrap();
+                    },
+                    Err(err) => {
+                        stream
+                            .write_all(&serialize(&Err::<(), Error>(err)).unwrap())
+                            .unwrap()
+                    },
                 }
             }
 
@@ -102,9 +110,10 @@ pub fn start_server(
         }
 
         match *request {
-            Request::Show { ref profile, ref value } => {
-                display.show(*value, &global_config, &color_configs[profile])
-            },
+            Request::Show {
+                ref profile,
+                ref value,
+            } => display.show(*value, &global_config, &color_configs[profile]),
             Request::Hide => display.hide(),
             Request::Stop => break,
             Request::Empty => {},

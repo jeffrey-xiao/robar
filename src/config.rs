@@ -1,3 +1,4 @@
+use super::Error;
 use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use std::collections::HashMap;
 use std::fmt;
@@ -5,7 +6,6 @@ use std::fs::File;
 use std::io::prelude::Read;
 use std::path::Path;
 use toml;
-use super::{Error};
 
 #[derive(Copy, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -130,23 +130,22 @@ impl<'de> Deserialize<'de> for ColorConfig {
                 let foreground: String = seq
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let foreground = u32::from_str_radix(&foreground[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&foreground), &"a hex color"))?;
+                let foreground = u32::from_str_radix(&foreground[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&foreground), &"a hex color")
+                })?;
                 let background: String = seq
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let background = u32::from_str_radix(&background[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&background), &"a hex color"))?;
+                let background = u32::from_str_radix(&background[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&background), &"a hex color")
+                })?;
                 let border: String = seq
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let border = u32::from_str_radix(&border[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&border), &"a hex color"))?;
-                Ok(ColorConfig::new(
-                    foreground,
-                    background,
-                    border,
-                ))
+                let border = u32::from_str_radix(&border[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&border), &"a hex color")
+                })?;
+                Ok(ColorConfig::new(foreground, background, border))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<ColorConfig, V::Error>
@@ -179,21 +178,22 @@ impl<'de> Deserialize<'de> for ColorConfig {
                     }
                 }
 
-                let foreground = foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
-                let foreground = u32::from_str_radix(&foreground[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&foreground), &"a hex color"))?;
-                let background = background.ok_or_else(|| de::Error::missing_field("background"))?;
-                let background = u32::from_str_radix(&background[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&background), &"a hex color"))?;
+                let foreground =
+                    foreground.ok_or_else(|| de::Error::missing_field("foreground"))?;
+                let foreground = u32::from_str_radix(&foreground[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&foreground), &"a hex color")
+                })?;
+                let background =
+                    background.ok_or_else(|| de::Error::missing_field("background"))?;
+                let background = u32::from_str_radix(&background[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&background), &"a hex color")
+                })?;
                 let border = border.ok_or_else(|| de::Error::missing_field("border"))?;
-                let border = u32::from_str_radix(&border[1..], 16)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&border), &"a hex color"))?;
+                let border = u32::from_str_radix(&border[1..], 16).map_err(|_| {
+                    de::Error::invalid_value(de::Unexpected::Str(&border), &"a hex color")
+                })?;
 
-                Ok(ColorConfig::new(
-                    foreground,
-                    background,
-                    border,
-                ))
+                Ok(ColorConfig::new(foreground, background, border))
             }
         }
 
@@ -208,10 +208,11 @@ pub fn parse_config<P>(
 where
     P: AsRef<Path>,
 {
-    let mut config_file = File::open(&config_path)
-        .map_err(|err| Error::new("reading config", err))?;
+    let mut config_file =
+        File::open(&config_path).map_err(|err| Error::new("reading config", err))?;
     let mut raw_config = String::new();
-    config_file.read_to_string(&mut raw_config)
+    config_file
+        .read_to_string(&mut raw_config)
         .map_err(|err| Error::new("reading config", err))?;
 
     let toml_value = raw_config
@@ -219,26 +220,34 @@ where
         .map_err(|err| Error::new("parsing config", err))?;
     let mut toml_table = match toml_value {
         toml::Value::Table(table) => Ok(table),
-        _ => Err(Error::from_description("parsing config", "Expected table at root of config.")),
+        _ => {
+            Err(Error::from_description(
+                "parsing config",
+                "Expected table at root of config.",
+            ))
+        },
     }?;
 
-    let global_value = toml_table
-        .remove("global")
-        .take()
-        .ok_or_else(|| Error::from_description("parsing config", "Expected `global` section in config."))?;
+    let global_value = toml_table.remove("global").take().ok_or_else(|| {
+        Error::from_description("parsing config", "Expected `global` section in config.")
+    })?;
     let global_config = global_value
         .try_into::<GlobalConfig>()
         .map_err(|err| Error::new("parsing config", err))?;
 
-    let color_values = toml_table
-        .remove("colors")
-        .take()
-        .ok_or_else(|| Error::from_description("parsing config", "Expected `colors` section in config."))?;
+    let color_values = toml_table.remove("colors").take().ok_or_else(|| {
+        Error::from_description("parsing config", "Expected `colors` section in config.")
+    })?;
 
     let mut color_configs = HashMap::new();
     let color_values = match color_values {
         toml::Value::Table(table) => Ok(table),
-        _ => Err(Error::from_description("parsing config", "Expected array in `colors` section.")),
+        _ => {
+            Err(Error::from_description(
+                "parsing config",
+                "Expected array in `colors` section.",
+            ))
+        },
     }?;
 
     for (profile_name, color_value) in color_values {

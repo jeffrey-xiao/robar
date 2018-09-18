@@ -15,10 +15,10 @@ use clap::{App, Arg, SubCommand};
 use std::error;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::result;
 use std::process;
+use std::result;
 
-#[derive(Debug,  Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Error {
     context: String,
     description: String,
