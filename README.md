@@ -90,7 +90,7 @@ All values must be in the format `#RRGGBB`.
 
 ## Example Configuration
 
-`examples/rob.toml`
+`examples/robar.toml`
 
 ```
 [global]
