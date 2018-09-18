@@ -70,7 +70,7 @@ impl fmt::Display for Error {
 pub type Result<T> = result::Result<T, Error>;
 
 fn run() -> Result<()> {
-    let matches = App::new("x11-overlay-bar-rs")
+    let matches = App::new("robar")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Jeffrey Xiao <jeffrey.xiao1998@gmail.com>")
         .about("A simple, but flexible system overlay bar for the X Window System (X11).")
