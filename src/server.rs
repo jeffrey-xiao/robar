@@ -99,14 +99,19 @@ pub fn start_server(
     let mut request = lock.lock().unwrap();
 
     loop {
-        let result = cvar
-            .wait_timeout(request, Duration::from_millis(global_config.timeout))
-            .unwrap();
-        request = result.0;
+        if global_config.timeout != 0 {
+            let result = cvar
+                .wait_timeout(request, Duration::from_millis(global_config.timeout))
+                .unwrap();
+            request = result.0;
 
-        if result.1.timed_out() {
-            display.hide();
-            continue;
+            if result.1.timed_out() {
+                display.hide();
+                continue;
+            }
+        } else {
+            let result = cvar.wait(request).unwrap();
+            request = result;
         }
 
         match *request {
