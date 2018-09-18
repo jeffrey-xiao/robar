@@ -107,10 +107,11 @@ fn run() -> Result<()> {
             let config_path = match matches.value_of("config") {
                 Some(config) => PathBuf::from(config),
                 None => {
-                    let config_home_dir = option_env!("XDG_CONFIG_HOME").unwrap_or("$HOME/.config");
-                    Path::new(config_home_dir)
-                        .join(env!("CARGO_PKG_VERSION"))
-                        .join(format!("{}.toml", env!("CARGO_PKG_VERSION")))
+                    let xdg_config_home = option_env!("XDG_CONFIG_HOME");
+                    let config_home_dir = format!("{}/{}", env!("HOME"), ".config");
+                    Path::new(xdg_config_home.unwrap_or(&config_home_dir))
+                        .join(env!("CARGO_PKG_NAME"))
+                        .join(format!("{}.toml", env!("CARGO_PKG_NAME")))
                 },
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
