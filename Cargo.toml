@@ -22,7 +22,6 @@ clap = "2.32"
 toml = "0.4"
 serde_derive = "1.0"
 serde = "1.0"
-libc = "*"
 
 [dependencies.xcb]
 version = "0.8"

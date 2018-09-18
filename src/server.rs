@@ -75,8 +75,11 @@ pub fn start_server(
 
             if result.is_ok() {
                 match validate_request(&color_configs_clone, buffer) {
-                    Ok(new_request) => *request = new_request,
-                    Err(err) => stream.write_all(&serialize(&err).unwrap()).unwrap(),
+                    Ok(new_request) => {
+                        *request = new_request;
+                        stream.write_all(&serialize(&Ok::<(), Error>(())).unwrap()).unwrap();
+                    }
+                    Err(err) => stream.write_all(&serialize(&Err::<(), Error>(err)).unwrap()).unwrap(),
                 }
             }
 

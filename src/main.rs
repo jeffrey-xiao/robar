@@ -1,6 +1,5 @@
 extern crate bincode;
 extern crate clap;
-extern crate libc;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -17,11 +16,13 @@ use std::error;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::result;
+use std::process;
 
 #[derive(Debug,  Deserialize, Serialize)]
 pub struct Error {
     context: String,
     description: String,
+    details: String,
 }
 
 impl Error {
@@ -32,18 +33,20 @@ impl Error {
     {
         Error {
             context: context.into(),
-            description: error.description().to_owned(),
+            description: error.description().into(),
+            details: error.to_string(),
         }
     }
 
-    pub fn from_description<T, U>(context: T, description: U) -> Self
+    pub fn from_description<T, U>(context: T, details: U) -> Self
     where
         T: Into<String>,
         U: Into<String>,
     {
         Error {
             context: context.into(),
-            description: description.into(),
+            details: details.into(),
+            description: "a custom error".into(),
         }
     }
 }
@@ -60,7 +63,7 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error in {}: {}", self.context, self.description)
+        write!(f, "Error in {} - {}", self.context, self.details)
     }
 }
 
@@ -124,7 +127,7 @@ fn run() -> Result<()> {
                     .value_of("value")
                     .expect("Expected `value` to exist.")
                     .parse()
-                    .unwrap(),
+                    .map_err(|err| Error::new("parsing `value`", err))?,
             )
         },
         ("hide", Some(_)) => client::hide(),
@@ -136,5 +139,6 @@ fn run() -> Result<()> {
 fn main() {
     if let Err(err) = run() {
         println!("{}", err);
+        process::exit(1);
     }
 }
