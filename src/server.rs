@@ -1,14 +1,15 @@
-use super::Result;
-use bincode::deserialize;
+use bincode::{deserialize, serialize};
 use config;
 use display;
 use std::collections::HashMap;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::unix::net::UnixListener;
+use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
+use super::{Error, Result};
 
 pub const MAX_REQUEST_SIZE: usize = 32;
 pub const SOCKET_PATH: &str = "/tmp/robar";
@@ -18,17 +19,40 @@ pub enum Request {
     Show { profile: String, value: f64 },
     Hide,
     Stop,
+    Empty,
+}
+
+fn validate_request(
+    color_configs: &HashMap<String, config::ColorConfig>,
+    buffer: Vec<u8>
+) -> Result<Request> {
+    let request = deserialize(&buffer)
+        .map_err(|err| Error::new("deserializing request", err))?;
+
+    if let Request::Show { ref profile, .. } = request {
+        if !color_configs.contains_key(profile) {
+            return Err(Error::from_description("processing request", format!("Color profile `{}` not found.", profile)));
+        }
+    }
+
+    Ok(request)
 }
 
 pub fn start_server(
-    display: &display::Display,
-    global_config: &config::GlobalConfig,
-    color_configs: &HashMap<String, config::ColorConfig>,
+    display: display::Display,
+    global_config: config::GlobalConfig,
+    color_configs: HashMap<String, config::ColorConfig>,
 ) -> Result<()> {
-    let display = Arc::new(display);
-    let socket = UnixListener::bind(SOCKET_PATH)?;
+    if Path::new(SOCKET_PATH).exists() {
+        fs::remove_file(SOCKET_PATH)
+            .map_err(|err| Error::new("removing existing socket", err))?;
+    }
 
-    let pair1 = Arc::new((Mutex::new(Vec::new()), Condvar::new()));
+    let color_configs_clone = color_configs.clone();
+    let socket = UnixListener::bind(SOCKET_PATH)
+        .map_err(|err| Error::new("binding socket", err))?;
+
+    let pair1 = Arc::new((Mutex::new(Request::Empty), Condvar::new()));
     let pair2 = pair1.clone();
 
     thread::spawn(move || {
@@ -42,11 +66,18 @@ pub fn start_server(
             };
 
             let &(ref lock, ref cvar) = &*pair2;
-            let mut buffer = lock.lock().unwrap();
-            *buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
+            let mut request = lock.lock().unwrap();
+            *request = Request::Empty;
 
-            if let Err(err) = stream.read_to_end(&mut buffer) {
-                println!("Error with reading request: {}.", err);
+            let mut buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
+            let mut result = stream.read_to_end(&mut buffer)
+                .map_err(|err| Error::new("reading request", err));
+
+            if result.is_ok() {
+                match validate_request(&color_configs_clone, buffer) {
+                    Ok(new_request) => *request = new_request,
+                    Err(err) => stream.write_all(&serialize(&err).unwrap()).unwrap(),
+                }
             }
 
             cvar.notify_one();
@@ -54,29 +85,28 @@ pub fn start_server(
     });
 
     let &(ref lock, ref cvar) = &*pair1;
-    let mut buffer = lock.lock().unwrap();
+    let mut request = lock.lock().unwrap();
 
     loop {
         let result = cvar
-            .wait_timeout(buffer, Duration::from_millis(global_config.timeout))
+            .wait_timeout(request, Duration::from_millis(global_config.timeout))
             .unwrap();
-        buffer = result.0;
+        request = result.0;
 
         if result.1.timed_out() {
             display.hide();
             continue;
         }
 
-        match deserialize(&buffer).unwrap() {
-            Request::Show { profile, value } => {
-                display.show(value, &global_config, &color_configs[&profile])
+        match *request {
+            Request::Show { ref profile, ref value } => {
+                display.show(*value, &global_config, &color_configs[profile])
             },
             Request::Hide => display.hide(),
             Request::Stop => break,
+            Request::Empty => {},
         }
     }
-
-    fs::remove_file(SOCKET_PATH)?;
 
     Ok(())
 }

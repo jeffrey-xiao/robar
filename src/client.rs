@@ -1,26 +1,34 @@
-use super::Result;
+use super::{Error, Result};
 use bincode::serialize;
 use server;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
+use std::net::Shutdown;
+
+fn send_request(request: server::Request) -> Result<()> {
+    let mut socket = UnixStream::connect(server::SOCKET_PATH)
+        .map_err(|err| Error::new("connecting to server", err))?;
+    let serialized_request = serialize(&request)
+        .map_err(|err| Error::new("serializing request", err))?;
+    socket.write_all(&serialized_request)
+        .map_err(|err| Error::new("sending request", err))?;
+    socket.shutdown(Shutdown::Write)
+        .map_err(|err| Error::new("sending request", err))?;
+
+    let mut buffer = Vec::with_capacity(server::MAX_REQUEST_SIZE);
+    socket.read_to_end(&mut buffer)
+        .map_err(|err| Error::new("reading reply", err))?;
+    Ok(())
+}
 
 pub fn show(profile: String, value: f64) -> Result<()> {
-    let mut socket = UnixStream::connect(server::SOCKET_PATH)?;
-    let serialized_request = serialize(&server::Request::Show { profile, value })?;
-    socket.write_all(&serialized_request)?;
-    Ok(())
+    send_request(server::Request::Show { profile, value })
 }
 
 pub fn hide() -> Result<()> {
-    let mut socket = UnixStream::connect(server::SOCKET_PATH)?;
-    let serialized_request = serialize(&server::Request::Hide)?;
-    socket.write_all(&serialized_request)?;
-    Ok(())
+    send_request(server::Request::Hide)
 }
 
 pub fn stop() -> Result<()> {
-    let mut socket = UnixStream::connect(server::SOCKET_PATH)?;
-    let serialized_request = serialize(&server::Request::Stop)?;
-    socket.write_all(&serialized_request)?;
-    Ok(())
+    send_request(server::Request::Stop)
 }

@@ -15,22 +15,42 @@ mod server;
 use clap::{App, Arg, SubCommand};
 use std::error;
 use std::fmt;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::result;
 
-#[derive(Debug)]
-pub struct ParseError(String);
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use std::error::Error;
-        write!(f, "{}", self.description())
+#[derive(Debug,  Deserialize, Serialize)]
+pub struct Error {
+    context: String,
+    description: String,
+}
+
+impl Error {
+    pub fn new<T, U>(context: T, error: U) -> Self
+    where
+        T: Into<String>,
+        U: error::Error,
+    {
+        Error {
+            context: context.into(),
+            description: error.description().to_owned(),
+        }
+    }
+
+    pub fn from_description<T, U>(context: T, description: U) -> Self
+    where
+        T: Into<String>,
+        U: Into<String>,
+    {
+        Error {
+            context: context.into(),
+            description: description.into(),
+        }
     }
 }
 
-impl error::Error for ParseError {
+impl error::Error for Error {
     fn description(&self) -> &str {
-        self.0.as_str()
+        &self.description
     }
 
     fn cause(&self) -> Option<&error::Error> {
@@ -38,56 +58,9 @@ impl error::Error for ParseError {
     }
 }
 
-#[derive(Debug)]
-pub enum Error {
-    IOError(io::Error),
-    SerdeError(bincode::Error),
-    ParseError(ParseError),
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::IOError(err)
-    }
-}
-
-impl From<bincode::Error> for Error {
-    fn from(err: bincode::Error) -> Error {
-        Error::SerdeError(err)
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Error {
-        Error::ParseError(err)
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match self {
-            Error::IOError(ref error) => error.description(),
-            Error::SerdeError(ref error) => error.description(),
-            Error::ParseError(ref error) => error.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        match self {
-            Error::IOError(ref error) => error.cause(),
-            Error::SerdeError(ref error) => error.cause(),
-            Error::ParseError(ref error) => error.cause(),
-        }
-    }
-}
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::IOError(ref error) => write!(f, "{}", error),
-            Error::SerdeError(ref error) => write!(f, "{}", error),
-            Error::ParseError(ref error) => write!(f, "{}", error),
-        }
+        write!(f, "Error in {}: {}", self.context, self.description)
     }
 }
 
@@ -139,7 +112,7 @@ fn run() -> Result<()> {
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
-            server::start_server(&display, &global_config, &color_configs)
+            server::start_server(display, global_config, color_configs)
         },
         ("show", Some(matches)) => {
             client::show(
