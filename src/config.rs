@@ -251,9 +251,9 @@ where
     }?;
 
     for (profile_name, color_value) in color_values {
-        let color_config = color_value
-            .try_into::<ColorConfig>()
-            .map_err(|err| Error::new(format!("parsing color profile `{}`", &profile_name), &err))?;
+        let color_config = color_value.try_into::<ColorConfig>().map_err(|err| {
+            Error::new(format!("parsing color profile `{}`", &profile_name), &err)
+        })?;
         color_configs.insert(profile_name, color_config);
     }
 
