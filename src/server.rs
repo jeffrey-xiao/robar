@@ -24,9 +24,9 @@ pub enum Request {
 
 fn validate_request(
     color_configs: &HashMap<String, config::ColorConfig>,
-    buffer: Vec<u8>,
+    buffer: &[u8],
 ) -> Result<Request> {
-    let request = deserialize(&buffer).map_err(|err| Error::new("deserializing request", err))?;
+    let request = deserialize(&buffer).map_err(|err| Error::new("deserializing request", &err))?;
 
     if let Request::Show { ref profile, .. } = request {
         if !color_configs.contains_key(profile) {
@@ -41,17 +41,17 @@ fn validate_request(
 }
 
 pub fn start_server(
-    display: display::Display,
-    global_config: config::GlobalConfig,
-    color_configs: HashMap<String, config::ColorConfig>,
+    display: &display::Display,
+    global_config: &config::GlobalConfig,
+    color_configs: &HashMap<String, config::ColorConfig>,
 ) -> Result<()> {
     if Path::new(SOCKET_PATH).exists() {
-        fs::remove_file(SOCKET_PATH).map_err(|err| Error::new("removing existing socket", err))?;
+        fs::remove_file(SOCKET_PATH).map_err(|err| Error::new("removing existing socket", &err))?;
     }
 
     let color_configs_clone = color_configs.clone();
     let socket =
-        UnixListener::bind(SOCKET_PATH).map_err(|err| Error::new("binding socket", err))?;
+        UnixListener::bind(SOCKET_PATH).map_err(|err| Error::new("binding socket", &err))?;
 
     let pair1 = Arc::new((Mutex::new(Request::Empty), Condvar::new()));
     let pair2 = pair1.clone();
@@ -73,10 +73,10 @@ pub fn start_server(
             let mut buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
             let mut result = stream
                 .read_to_end(&mut buffer)
-                .map_err(|err| Error::new("reading request", err));
+                .map_err(|err| Error::new("reading request", &err));
 
             if result.is_ok() {
-                match validate_request(&color_configs_clone, buffer) {
+                match validate_request(&color_configs_clone, &buffer) {
                     Ok(new_request) => {
                         *request = new_request;
                         stream

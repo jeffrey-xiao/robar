@@ -5,24 +5,23 @@ use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::os::unix::net::UnixStream;
 
-fn send_request(request: server::Request) -> Result<()> {
+fn send_request(request: &server::Request) -> Result<()> {
     let mut socket = UnixStream::connect(server::SOCKET_PATH)
-        .map_err(|err| Error::new("connecting to server", err))?;
+        .map_err(|err| Error::new("connecting to server", &err))?;
     let serialized_request =
-        serialize(&request).map_err(|err| Error::new("serializing request", err))?;
+        serialize(&request).map_err(|err| Error::new("serializing request", &err))?;
     socket
         .write_all(&serialized_request)
-        .map_err(|err| Error::new("sending request", err))?;
+        .map_err(|err| Error::new("sending request", &err))?;
     socket
         .shutdown(Shutdown::Write)
-        .map_err(|err| Error::new("sending request", err))?;
+        .map_err(|err| Error::new("sending request", &err))?;
 
     let mut buffer = Vec::with_capacity(server::MAX_REQUEST_SIZE);
     socket
         .read_to_end(&mut buffer)
-        .map_err(|err| Error::new("reading reply", err))?;
-    let result = deserialize(&buffer).map_err(|err| Error::new("deserializing reply", err))?;
-    result
+        .map_err(|err| Error::new("reading reply", &err))?;
+    deserialize(&buffer).map_err(|err| Error::new("deserializing reply", &err))
 }
 
 pub fn show(profile: String, value: f64) -> Result<()> {
@@ -32,13 +31,13 @@ pub fn show(profile: String, value: f64) -> Result<()> {
             "Expected `value` in [0, 1].",
         ));
     }
-    send_request(server::Request::Show { profile, value })
+    send_request(&server::Request::Show { profile, value })
 }
 
 pub fn hide() -> Result<()> {
-    send_request(server::Request::Hide)
+    send_request(&server::Request::Hide)
 }
 
 pub fn stop() -> Result<()> {
-    send_request(server::Request::Stop)
+    send_request(&server::Request::Stop)
 }

@@ -141,8 +141,8 @@ impl Display {
                     && y < reply.y() + reply.height() as i16
                 {
                     return ScreenInfo {
-                        width: reply.width() as u32,
-                        height: reply.height() as u32,
+                        width: u32::from(reply.width()),
+                        height: u32::from(reply.height()),
                         x: reply.x(),
                         y: reply.y(),
                     };

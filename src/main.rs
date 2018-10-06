@@ -26,7 +26,7 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn new<T, U>(context: T, error: U) -> Self
+    pub fn new<T, U>(context: T, error: &U) -> Self
     where
         T: Into<String>,
         U: error::Error,
@@ -119,7 +119,7 @@ fn run() -> Result<()> {
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
-            server::start_server(display, global_config, color_configs)
+            server::start_server(&display, &global_config, &color_configs)
         },
         ("show", Some(matches)) => {
             client::show(
@@ -131,7 +131,7 @@ fn run() -> Result<()> {
                     .value_of("value")
                     .expect("Expected `value` to exist.")
                     .parse()
-                    .map_err(|err| Error::new("parsing `value`", err))?,
+                    .map_err(|err| Error::new("parsing `value`", &err))?,
             )
         },
         ("hide", Some(_)) => client::hide(),

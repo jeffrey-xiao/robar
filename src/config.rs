@@ -209,15 +209,15 @@ where
     P: AsRef<Path>,
 {
     let mut config_file =
-        File::open(&config_path).map_err(|err| Error::new("reading config", err))?;
+        File::open(&config_path).map_err(|err| Error::new("reading config", &err))?;
     let mut raw_config = String::new();
     config_file
         .read_to_string(&mut raw_config)
-        .map_err(|err| Error::new("reading config", err))?;
+        .map_err(|err| Error::new("reading config", &err))?;
 
     let toml_value = raw_config
         .parse::<toml::Value>()
-        .map_err(|err| Error::new("parsing config", err))?;
+        .map_err(|err| Error::new("parsing config", &err))?;
     let mut toml_table = match toml_value {
         toml::Value::Table(table) => Ok(table),
         _ => {
@@ -233,7 +233,7 @@ where
     })?;
     let global_config = global_value
         .try_into::<GlobalConfig>()
-        .map_err(|err| Error::new("parsing config", err))?;
+        .map_err(|err| Error::new("parsing config", &err))?;
 
     let color_values = toml_table.remove("colors").take().ok_or_else(|| {
         Error::from_description("parsing config", "Expected `colors` section in config.")
@@ -253,7 +253,7 @@ where
     for (profile_name, color_value) in color_values {
         let color_config = color_value
             .try_into::<ColorConfig>()
-            .map_err(|err| Error::new(format!("parsing color profile `{}`", &profile_name), err))?;
+            .map_err(|err| Error::new(format!("parsing color profile `{}`", &profile_name), &err))?;
         color_configs.insert(profile_name, color_config);
     }
 
