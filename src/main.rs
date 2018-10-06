@@ -84,7 +84,8 @@ fn run() -> Result<()> {
                         .short("c")
                         .long("config"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("show")
                 .about("Shows bar with a specific value and in a specific color profile.")
                 .arg(
@@ -92,13 +93,15 @@ fn run() -> Result<()> {
                         .help("The color profile to use.")
                         .index(1)
                         .required(true),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("value")
                         .help("The value of the bar.")
                         .index(2)
                         .required(true),
                 ),
-        ).subcommand(SubCommand::with_name("hide").about("Hides the bar."))
+        )
+        .subcommand(SubCommand::with_name("hide").about("Hides the bar."))
         .subcommand(SubCommand::with_name("stop").about("Stops daemon."))
         .get_matches();
 
