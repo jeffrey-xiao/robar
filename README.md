@@ -111,6 +111,10 @@ background = "#073642"
 border = "#b58900"
 ```
 
+## Changelog
+
+See [CHANGELOG](CHANGELOG.md) for more details.
+
 ## License
 
 `robar` is distributed under the terms of both the MIT License and the Apache License (Version 2.0).
