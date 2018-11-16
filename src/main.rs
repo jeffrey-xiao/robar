@@ -45,8 +45,8 @@ impl Error {
     {
         Error {
             context: context.into(),
-            details: details.into(),
             description: "a custom error".into(),
+            details: details.into(),
         }
     }
 }

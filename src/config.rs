@@ -2,9 +2,9 @@ use super::Error;
 use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
-use std::io::prelude::Read;
+use std::fs;
 use std::path::Path;
+use std::str;
 use toml;
 
 #[derive(Copy, Clone, Deserialize)]
@@ -208,14 +208,10 @@ pub fn parse_config<P>(
 where
     P: AsRef<Path>,
 {
-    let mut config_file =
-        File::open(&config_path).map_err(|err| Error::new("reading config", &err))?;
-    let mut raw_config = String::new();
-    config_file
-        .read_to_string(&mut raw_config)
-        .map_err(|err| Error::new("reading config", &err))?;
-
-    let toml_value = raw_config
+    let config_file_buffer =
+        fs::read(&config_path).map_err(|err| Error::new("reading config", &err))?;
+    let toml_value = str::from_utf8(&config_file_buffer)
+        .map_err(|err| Error::new("reading config", &err))?
         .parse::<toml::Value>()
         .map_err(|err| Error::new("parsing config", &err))?;
     let mut toml_table = match toml_value {
