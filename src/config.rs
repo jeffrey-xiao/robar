@@ -231,17 +231,16 @@ where
         .try_into::<GlobalConfig>()
         .map_err(|err| Error::new("parsing config", &err))?;
 
+    let mut color_configs = HashMap::new();
     let color_values = toml_table.remove("colors").take().ok_or_else(|| {
         Error::from_description("parsing config", "Expected `colors` section in config.")
     })?;
-
-    let mut color_configs = HashMap::new();
     let color_values = match color_values {
         toml::Value::Table(table) => Ok(table),
         _ => {
             Err(Error::from_description(
                 "parsing config",
-                "Expected array in `colors` section.",
+                "Expected table in `colors` section.",
             ))
         },
     }?;
