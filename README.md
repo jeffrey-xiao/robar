@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Build Status](https://travis-ci.org/jeffrey-xiao/robar-rs.svg?branch=master)](https://travis-ci.org/jeffrey-xiao/robar-rs)
 
-![Screencast of robar](examples/screencast.gif)
+![Screencast of `robar`](examples/screencast.gif)
 
 `robar` is a simple, but flexible system overlay bar for the X Window System (X11) using Unix
 Sockets. Inspired by [`xob`](https://github.com/florentc/xob).
