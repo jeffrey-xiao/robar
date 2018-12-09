@@ -1,5 +1,6 @@
-use super::Error;
+use crate::Error;
 use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
@@ -119,7 +120,7 @@ impl<'de> Deserialize<'de> for ColorConfig {
         impl<'de> Visitor<'de> for ColorConfigVisitor {
             type Value = ColorConfig;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("struct ColorConfig")
             }
 

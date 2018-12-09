@@ -1,17 +1,10 @@
-extern crate bincode;
-extern crate clap;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate toml;
-extern crate xcb;
-
 mod client;
 mod config;
 mod display;
 mod server;
 
 use clap::{App, Arg, SubCommand};
+use serde_derive::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -56,13 +49,13 @@ impl error::Error for Error {
         &self.description
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Error in {} - {}", self.context, self.details)
     }
 }

@@ -1,7 +1,8 @@
-use super::{Error, Result};
+use crate::config;
+use crate::display;
+use crate::{Error, Result};
 use bincode::{deserialize, serialize};
-use config;
-use display;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Write};
@@ -71,7 +72,7 @@ pub fn start_server(
             *request = Request::Empty;
 
             let mut buffer = Vec::with_capacity(MAX_REQUEST_SIZE);
-            let mut result = stream
+            let result = stream
                 .read_to_end(&mut buffer)
                 .map_err(|err| Error::new("reading request", &err));
 

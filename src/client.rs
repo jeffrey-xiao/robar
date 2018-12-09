@@ -1,6 +1,6 @@
-use super::{Error, Result};
+use crate::server;
+use crate::{Error, Result};
 use bincode::{deserialize, serialize};
-use server;
 use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::os::unix::net::UnixStream;

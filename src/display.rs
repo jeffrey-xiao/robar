@@ -1,4 +1,4 @@
-use config;
+use crate::config;
 use xcb;
 
 pub struct Display {
