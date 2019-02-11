@@ -54,7 +54,7 @@ When `robar` is started (`robar start`), it looks for a configuration file in th
 Global configuration values are set under the `global` section in the config (`[global]`).
 
 | Name                | Description                                                                                     | Default |
-|---------------------|-------------------------------------------------------------------------------------------------|---------|
+| ------------------- | ----------------------------------------------------------------------------------------------- | ------- |
 | `x_center_relative` | The x coordinate of the center of the bar relative to the active screen.                        | `0`     |
 | `x_center_absolute` | The absolute offset of the center of the bar.                                                   |         |
 | `y_center_relative` | The y coordinate of the center of the bar relative to the active screen.                        | `0`     |
@@ -67,7 +67,7 @@ Global configuration values are set under the `global` section in the config (`[
 | `width_relative`    | The width of the bar relative to the active screen.                                             | `0`     |
 | `width_absolute`    | The absolute width of the bar.                                                                  |         |
 | `timeout`           | The number of milliseconds before the bar fades. If timeout is set to 0, then the bar persists. | `1000`  |
-| `fill_direction`    | The direction to fill the bar (up|down|left|right)                                              |         |
+| `fill_direction`    | The direction to fill the bar (up                                                               | down    | left | right) |  |
 
 The height of the bar is defined as the `height_relative + height_absolute`.
 
@@ -81,7 +81,7 @@ Color profile configuration values are set under the `colors.<profile>` section 
 (`[colors.<profile>]`) where <profile> is the name of the color profile.
 
 | Name         | Description                  |
-|--------------|------------------------------|
+| ------------ | ---------------------------- |
 | `foreground` | The color of the foreground. |
 | `background` | The color of the background. |
 | `border`     | The color of the border.     |
