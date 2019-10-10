@@ -1,0 +1,5 @@
+var N=null,E="",T="t",U="u",searchIndex={};
+var R=["result","formatter"];
+
+searchIndex["robar"]={"doc":E,"i":[[3,"Error","robar",E,N,N],[6,"Result",E,E,N,N],[11,"new",E,E,0,[[[U],[T]],["self"]]],[11,"from_description",E,E,0,[[[U],[T]],["self"]]],[11,"from",E,E,0,[[[T]],[T]]],[11,"to_string",E,E,0,[[["self"]],["string"]]],[11,"into",E,E,0,[[],[U]]],[11,"try_from",E,E,0,[[[U]],[R[0]]]],[11,"try_into",E,E,0,[[],[R[0]]]],[11,"borrow_mut",E,E,0,[[["self"]],[T]]],[11,"borrow",E,E,0,[[["self"]],[T]]],[11,"type_id",E,E,0,[[["self"]],["typeid"]]],[11,"fmt",E,E,0,[[["self"],[R[1]]],[R[0]]]],[11,"fmt",E,E,0,[[["self"],[R[1]]],[R[0]]]],[11,"description",E,E,0,[[["self"]],["str"]]],[11,"cause",E,E,0,[[["self"]],[["option",["error"]],["error"]]]],[11,"serialize",E,E,0,[[["self"],["__s"]],[R[0]]]],[11,"deserialize",E,E,0,[[["__d"]],[R[0]]]]],"p":[[3,"Error"]]};
+initSearch(searchIndex);addSearchOptions(searchIndex);
