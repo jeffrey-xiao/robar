@@ -108,25 +108,23 @@ fn run() -> Result<()> {
                     Path::new(xdg_config_home.unwrap_or(&config_home_dir))
                         .join(env!("CARGO_PKG_NAME"))
                         .join(format!("{}.toml", env!("CARGO_PKG_NAME")))
-                },
+                }
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
             let display = display::Display::new().unwrap();
             server::start_server(&display, &global_config, &color_configs)
-        },
-        ("show", Some(matches)) => {
-            client::show(
-                matches
-                    .value_of("profile")
-                    .expect("Expected `profile` to exist.")
-                    .to_owned(),
-                matches
-                    .value_of("value")
-                    .expect("Expected `value` to exist.")
-                    .parse()
-                    .map_err(|err| Error::new("parsing `value`", &err))?,
-            )
-        },
+        }
+        ("show", Some(matches)) => client::show(
+            matches
+                .value_of("profile")
+                .expect("Expected `profile` to exist.")
+                .to_owned(),
+            matches
+                .value_of("value")
+                .expect("Expected `value` to exist.")
+                .parse()
+                .map_err(|err| Error::new("parsing `value`", &err))?,
+        ),
         ("hide", Some(_)) => client::hide(),
         ("stop", Some(_)) => client::stop(),
         _ => Ok(()),

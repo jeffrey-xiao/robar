@@ -64,7 +64,7 @@ pub fn start_server(
                 Err(err) => {
                     println!("Error with incoming connection: {}.", err);
                     continue;
-                },
+                }
             };
 
             let &(ref lock, ref cvar) = &*pair2;
@@ -83,12 +83,10 @@ pub fn start_server(
                         stream
                             .write_all(&serialize(&Ok::<(), Error>(())).unwrap())
                             .unwrap();
-                    },
-                    Err(err) => {
-                        stream
-                            .write_all(&serialize(&Err::<(), Error>(err)).unwrap())
-                            .unwrap()
-                    },
+                    }
+                    Err(err) => stream
+                        .write_all(&serialize(&Err::<(), Error>(err)).unwrap())
+                        .unwrap(),
                 }
             }
 
@@ -122,7 +120,7 @@ pub fn start_server(
             } => display.show(*value, &global_config, &color_configs[profile]),
             Request::Hide => display.hide(),
             Request::Stop => break,
-            Request::Empty => {},
+            Request::Empty => {}
         }
     }
 

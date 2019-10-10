@@ -22,7 +22,7 @@ $ cargo install robar
 ## Usage
 
 ```
-robar 0.1.0
+robar 1.0.0
 Jeffrey Xiao <jeffrey.xiao1998@gmail.com>
 A simple, but flexible system overlay bar for the X Window System (X11).
 

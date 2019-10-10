@@ -224,17 +224,17 @@ impl Display {
             config::Direction::Up => {
                 y += height_diff as i16;
                 height -= height_diff as u16;
-            },
+            }
             config::Direction::Down => {
                 height -= height_diff as u16;
-            },
+            }
             config::Direction::Left => {
                 x += width_diff as i16;
                 width -= width_diff as u16;
-            },
+            }
             config::Direction::Right => {
                 width -= width_diff as u16;
-            },
+            }
         }
 
         self.draw_rectangle(

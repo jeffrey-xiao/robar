@@ -163,19 +163,19 @@ impl<'de> Deserialize<'de> for ColorConfig {
                                 return Err(de::Error::duplicate_field("foreground"));
                             }
                             foreground = Some(map.next_value()?);
-                        },
+                        }
                         Field::Background => {
                             if background.is_some() {
                                 return Err(de::Error::duplicate_field("background"));
                             }
                             background = Some(map.next_value()?);
-                        },
+                        }
                         Field::Border => {
                             if border.is_some() {
                                 return Err(de::Error::duplicate_field("border"));
                             }
                             border = Some(map.next_value()?);
-                        },
+                        }
                     }
                 }
 
@@ -217,12 +217,10 @@ where
         .map_err(|err| Error::new("parsing config", &err))?;
     let mut toml_table = match toml_value {
         toml::Value::Table(table) => Ok(table),
-        _ => {
-            Err(Error::from_description(
-                "parsing config",
-                "Expected table at root of config.",
-            ))
-        },
+        _ => Err(Error::from_description(
+            "parsing config",
+            "Expected table at root of config.",
+        )),
     }?;
 
     let global_value = toml_table.remove("global").take().ok_or_else(|| {
@@ -238,12 +236,10 @@ where
     })?;
     let color_values = match color_values {
         toml::Value::Table(table) => Ok(table),
-        _ => {
-            Err(Error::from_description(
-                "parsing config",
-                "Expected table in `colors` section.",
-            ))
-        },
+        _ => Err(Error::from_description(
+            "parsing config",
+            "Expected table in `colors` section.",
+        )),
     }?;
 
     for (profile_name, color_value) in color_values {
