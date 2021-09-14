@@ -22,7 +22,7 @@ $ cargo install robar
 ## Usage
 
 ```
-robar 1.0.0
+robar 2.0.0
 Jeffrey Xiao <jeffrey.xiao1998@gmail.com>
 A simple, but flexible system overlay bar for the X Window System (X11).
 
@@ -34,11 +34,12 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    help     Prints this message or the help of the given subcommand(s)
-    hide     Hides the bar.
-    show     Shows bar with a specific value and in a specific color profile.
-    start    Starts daemon that listens to requests.
-    stop     Stops daemon.
+    help           Prints this message or the help of the given subcommand(s)
+    hide           Hides the bar.
+    show           Shows bar with a specific value and in a specific color profile.
+    show-stream    Shows bar using lines from standard input in the form of `profile value`
+    start          Starts daemon that listens to requests.
+    stop           Stops daemon.
 ```
 
 ## Configuration
