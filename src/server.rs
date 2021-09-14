@@ -18,7 +18,7 @@ pub const MAX_REQUEST_SIZE: usize = 32;
 pub const SOCKET_PATH: &str = "/tmp/robar";
 pub const END_OF_REQUEST_SEPARATOR: u8 = 13;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub enum Request {
     Show { profile: String, value: u8 },
     Hide,
@@ -113,7 +113,7 @@ pub fn start_server(
     let (tx, rx) = channel();
 
     let color_configs_clone = color_configs.clone();
-    let tx_clone = tx;
+    let tx_clone = tx.clone();
     thread::spawn(move || {
         for stream in socket.incoming() {
             let mut stream = match stream {

@@ -83,7 +83,7 @@ impl GlobalConfig {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct ColorConfig {
     pub foreground: u32,
     pub background: u32,
