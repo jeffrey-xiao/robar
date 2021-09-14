@@ -67,7 +67,7 @@ Global configuration values are set under the `global` section in the config (`[
 | `width_relative`    | The width of the bar relative to the active screen.                                             | `0`     |
 | `width_absolute`    | The absolute width of the bar.                                                                  |         |
 | `timeout`           | The number of milliseconds before the bar fades. If timeout is set to 0, then the bar persists. | `1000`  |
-| `fill_direction`    | The direction to fill the bar (up                                                               | down    | left | right) |  |
+| `fill_direction`    | The direction to fill the bar (up, down, left, right)                                           |         |
 
 The height of the bar is defined as the `height_relative + height_absolute`.
 

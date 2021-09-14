@@ -1,13 +1,16 @@
 use crate::config;
-use xcb;
+use xcb::{self, randr};
 
 pub struct Display {
     connection: xcb::Connection,
     window: u32,
     gc: u32,
     screen_index: usize,
+    screen_resources: Option<randr::GetScreenResourcesReply>,
+    previous_screen: Option<ScreenInfo>,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
 struct ScreenInfo {
     width: u32,
     height: u32,
@@ -62,6 +65,8 @@ impl Display {
             window,
             gc,
             screen_index,
+            screen_resources: None,
+            previous_screen: None,
         };
 
         ret.init_window();
@@ -93,45 +98,28 @@ impl Display {
         Ok(ret)
     }
 
-    fn get_size_and_offset(&self) -> ScreenInfo {
-        let dummy_window = self.connection.generate_id();
-        let screen = self
-            .connection
-            .get_setup()
-            .roots()
-            .nth(self.screen_index)
-            .expect("Expected screen to exist.");
-
-        xcb::create_window(
-            &self.connection,
-            0,
-            dummy_window,
-            screen.root(),
-            0,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-            &[],
-        );
-
-        self.connection.flush();
-
-        let sr_cookie = xcb::randr::get_screen_resources(&self.connection, dummy_window);
-        let sr_reply = sr_cookie
-            .get_reply()
-            .expect("Could not get screen resources.");
-        let pointer_cookie = xcb::query_pointer(&self.connection, dummy_window);
+    fn get_size_and_offset(&mut self) -> ScreenInfo {
+        let Display {
+            screen_resources,
+            connection,
+            window,
+            ..
+        } = self;
+        let screen_resources = screen_resources.get_or_insert_with(|| {
+            let sr_cookie = xcb::randr::get_screen_resources(&connection, *window);
+            sr_cookie
+                .get_reply()
+                .expect("Could not get screen resources.")
+        });
+        let pointer_cookie = xcb::query_pointer(&self.connection, *window);
         let pointer_reply = pointer_cookie
             .get_reply()
             .expect("Could not get pointer position.");
-        xcb::destroy_window(&self.connection, dummy_window);
 
         let x = pointer_reply.root_x();
         let y = pointer_reply.root_y();
-        let crtcs = sr_reply.crtcs();
+
+        let crtcs = screen_resources.crtcs();
         for crtc in crtcs {
             let crtc_cookie = xcb::randr::get_crtc_info(&self.connection, *crtc, 0);
             if let Ok(reply) = crtc_cookie.get_reply() {
@@ -153,7 +141,16 @@ impl Display {
         panic!("Pointer location was not on any screen.");
     }
 
-    fn configure_window(&self, screen_info: &ScreenInfo, global_config: &config::GlobalConfig) {
+    fn configure_window(&mut self, screen_info: &ScreenInfo, global_config: &config::GlobalConfig) {
+        if self
+            .previous_screen
+            .map(|prev| &prev == screen_info)
+            .unwrap_or(false)
+        {
+            return;
+        }
+        self.previous_screen = Some(*screen_info);
+
         let width = global_config.total_width(screen_info.width);
         let height = global_config.total_height(screen_info.height);
         let x = global_config.x(screen_info.width) + screen_info.x as u32;
@@ -170,7 +167,6 @@ impl Display {
                 (xcb::CONFIG_WINDOW_STACK_MODE as u16, xcb::STACK_MODE_ABOVE),
             ],
         );
-        self.connection.flush();
     }
 
     fn draw_rectangle(&self, color: u32, rectangle: xcb::Rectangle) {
@@ -180,7 +176,7 @@ impl Display {
 
     fn draw_bar(
         &self,
-        value: f64,
+        value: u8,
         screen_info: &ScreenInfo,
         global_config: &config::GlobalConfig,
         color_config: &config::ColorConfig,
@@ -212,8 +208,10 @@ impl Display {
             xcb::Rectangle::new(x, y, width, height),
         );
 
-        let height_diff = f64::from(global_config.height(screen_info.height)) * (1.0 - value);
-        let width_diff = f64::from(global_config.width(screen_info.width)) * (1.0 - value);
+        let height_diff =
+            f64::from(global_config.height(screen_info.height)) * (100 - value) as f64 / 100.0;
+        let width_diff =
+            f64::from(global_config.width(screen_info.width)) * (100 - value) as f64 / 100.0;
 
         x += global_config.padding as i16;
         y += global_config.padding as i16;
@@ -244,8 +242,8 @@ impl Display {
     }
 
     pub fn show(
-        &self,
-        value: f64,
+        &mut self,
+        value: u8,
         global_config: &config::GlobalConfig,
         color_config: &config::ColorConfig,
     ) {

@@ -3,7 +3,7 @@ mod config;
 mod display;
 mod server;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 use serde_derive::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
@@ -15,7 +15,6 @@ use std::result;
 pub struct Error {
     context: String,
     description: String,
-    details: String,
 }
 
 impl Error {
@@ -26,20 +25,18 @@ impl Error {
     {
         Error {
             context: context.into(),
-            description: error.description().into(),
-            details: error.to_string(),
+            description: error.to_string(),
         }
     }
 
-    pub fn from_description<T, U>(context: T, details: U) -> Self
+    pub fn from_description<T, U>(context: T, description: U) -> Self
     where
         T: Into<String>,
         U: Into<String>,
     {
         Error {
             context: context.into(),
-            description: "a custom error".into(),
-            details: details.into(),
+            description: description.into(),
         }
     }
 }
@@ -56,7 +53,7 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error in {} - {}", self.context, self.details)
+        write!(f, "Error in {} - {}", self.context, self.description)
     }
 }
 
@@ -64,6 +61,7 @@ pub type Result<T> = result::Result<T, Error>;
 
 fn run() -> Result<()> {
     let matches = App::new("robar")
+        .setting(AppSettings::ArgRequiredElseHelp)
         .version(env!("CARGO_PKG_VERSION"))
         .author("Jeffrey Xiao <jeffrey.xiao1998@gmail.com>")
         .about("A simple, but flexible system overlay bar for the X Window System (X11).")
@@ -94,6 +92,10 @@ fn run() -> Result<()> {
                         .required(true),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("show-stream")
+                .about("Shows bar using lines from standard input in the form of `profile value`"),
+        )
         .subcommand(SubCommand::with_name("hide").about("Hides the bar."))
         .subcommand(SubCommand::with_name("stop").about("Stops daemon."))
         .get_matches();
@@ -111,8 +113,8 @@ fn run() -> Result<()> {
                 }
             };
             let (global_config, color_configs) = config::parse_config(config_path)?;
-            let display = display::Display::new().unwrap();
-            server::start_server(&display, &global_config, &color_configs)
+            let mut display = display::Display::new().unwrap();
+            server::start_server(&mut display, &global_config, &color_configs)
         }
         ("show", Some(matches)) => client::show(
             matches
@@ -125,6 +127,7 @@ fn run() -> Result<()> {
                 .parse()
                 .map_err(|err| Error::new("parsing `value`", &err))?,
         ),
+        ("show-stream", Some(_)) => client::show_stream(),
         ("hide", Some(_)) => client::hide(),
         ("stop", Some(_)) => client::stop(),
         _ => Ok(()),
@@ -133,7 +136,7 @@ fn run() -> Result<()> {
 
 fn main() {
     if let Err(err) = run() {
-        println!("{}", err);
+        eprintln!("{}", err);
         process::exit(1);
     }
 }

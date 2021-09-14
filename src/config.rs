@@ -6,7 +6,6 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 use std::str;
-use toml;
 
 #[derive(Copy, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -17,7 +16,6 @@ pub enum Direction {
     Right,
 }
 
-// TODO: Add icon
 #[derive(Copy, Clone, Deserialize)]
 pub struct GlobalConfig {
     #[serde(default)]
@@ -85,7 +83,7 @@ impl GlobalConfig {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ColorConfig {
     pub foreground: u32,
     pub background: u32,
