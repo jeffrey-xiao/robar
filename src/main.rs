@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::result;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Error {
     context: String,
     description: String,

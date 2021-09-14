@@ -1,6 +1,6 @@
 [package]
 name = "robar"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Jeffrey Xiao <jeffrey.xiao1998@gmail.com>"]
 license =  "MIT OR Apache-2.0"
 readme = "README.md"

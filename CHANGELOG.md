@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 - 2021-09-13
+
+### Fixed
+
+- Fix crash on server start.
+
 ## 2.0.0 - 2021-09-13
 
 ### Changed
